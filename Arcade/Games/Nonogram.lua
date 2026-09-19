@@ -8,24 +8,7 @@ local ADDON, ns = ...
 -- Puzzle library ('#' filled; every row must be the same width)
 ------------------------------------------------------------------------
 local PUZZLES = {
-  { name = "Smiley", diff = "Easy", lives = 5, msg = "Made you smile.", art = {
-    "....#######....",
-    "..###########..",
-    ".#############.",
-    "###############",
-    "##.##.....##.##",
-    "##.##.....##.##",
-    "###############",
-    "###############",
-    "##.#######.####",
-    "###.#####.####.",
-    ".##.......###..",
-    ".#############.",
-    "..###########..",
-    "....#######....",
-    "...............",
-  } },
-  { name = "Heart", diff = "Medium", lives = 4, msg = "Solved with love.", art = {
+  { name = "Heart", diff = "Medium", lives = 4, color = { 0.90, 0.22, 0.24 }, msg = "Solved with love.", art = {
     "...###...###...",
     "..###########..",
     ".#############.",
@@ -42,7 +25,7 @@ local PUZZLES = {
     "...............",
     "...............",
   } },
-  { name = "Diamond", diff = "Medium", lives = 4, msg = "A gem.", art = {
+  { name = "Diamond", diff = "Medium", lives = 4, color = { 0.38, 0.82, 0.92 }, msg = "A gem.", art = {
     ".......#.......",
     "......###......",
     ".....#####.....",
@@ -59,7 +42,7 @@ local PUZZLES = {
     "......###......",
     ".......#.......",
   } },
-  { name = "Sword", diff = "Hard", lives = 3, msg = "Sharp work.", art = {
+  { name = "Sword", diff = "Hard", lives = 3, color = { 0.55, 0.62, 0.72 }, msg = "Sharp work.", art = {
     ".......#.......",
     ".......#.......",
     ".......#.......",
@@ -76,7 +59,7 @@ local PUZZLES = {
     "...............",
     "...............",
   } },
-  { name = "Special Delivery", diff = "Hard", lives = 3, msg = "Delivered, just for you.", art = {
+  { name = "Special Delivery", diff = "Hard", lives = 3, color = { 0.90, 0.22, 0.24 }, msg = "Delivered, just for you.", art = {
     ".....#...#.....",
     "....##...##....",
     "....###.###....",
@@ -92,6 +75,282 @@ local PUZZLES = {
     ".######.######.",
     ".######.######.",
     "...............",
+  } },
+  { name = "Smiley", diff = "Easy", lives = 5, color = { 0.96, 0.82, 0.18 }, msg = "Made you smile.", art = {
+    "..######..",
+    ".########.",
+    "##########",
+    "##.####.##",
+    "##.####.##",
+    "##########",
+    "#.######.#",
+    "##.####.##",
+    ".##....##.",
+    "..######..",
+  } },
+  { name = "Star", diff = "Medium", lives = 4, color = { 0.92, 0.74, 0.20 }, msg = "A star is born.", art = {
+    "....##....",
+    "....##....",
+    "....##....",
+    "##########",
+    ".########.",
+    "..######..",
+    ".###..###.",
+    ".##....##.",
+    "##......##",
+    "#........#",
+  } },
+  { name = "Cat", diff = "Medium", lives = 4, color = { 0.95, 0.55, 0.15 }, msg = "Purrfect.", art = {
+    "#........#",
+    "##......##",
+    "##########",
+    "#.#....#.#",
+    "##########",
+    "##########",
+    "##########",
+    "#.######.#",
+    "##########",
+    ".########.",
+  } },
+  { name = "Fish", diff = "Easy", lives = 5, color = { 0.32, 0.56, 0.96 }, msg = "Something's fishy.", art = {
+    "..........",
+    ".####.....",
+    "########..",
+    "#######.##",
+    "########.#",
+    "########.#",
+    "#######.##",
+    "########..",
+    ".####.....",
+    "..........",
+  } },
+  { name = "Mushroom", diff = "Medium", lives = 4, color = { 0.90, 0.22, 0.24 }, msg = "1-up!", art = {
+    "..######..",
+    ".########.",
+    "##########",
+    "##.####.##",
+    "##########",
+    "...####...",
+    "...#..#...",
+    "...####...",
+    "...####...",
+    "..######..",
+  } },
+  { name = "Ghost", diff = "Easy", lives = 5, color = { 0.90, 0.92, 0.96 }, msg = "Boo!", art = {
+    "..######..",
+    ".########.",
+    "##.####.##",
+    "##.####.##",
+    "##########",
+    "##########",
+    "##########",
+    "##########",
+    "##########",
+    "#.#.##.#.#",
+  } },
+  { name = "Tree", diff = "Medium", lives = 4, color = { 0.32, 0.75, 0.34 }, msg = "Branching out.", art = {
+    "....##....",
+    "...####...",
+    "..######..",
+    ".########.",
+    "##########",
+    "...####...",
+    "....##....",
+    "....##....",
+    "...####...",
+    "..######..",
+  } },
+  { name = "Flower", diff = "Medium", lives = 4, color = { 0.96, 0.48, 0.72 }, msg = "Bloom.", art = {
+    "..#....#..",
+    ".###..###.",
+    "..######..",
+    "###.##.###",
+    "###.##.###",
+    "..######..",
+    ".###..###.",
+    "....##....",
+    "....##....",
+    "..######..",
+  } },
+  { name = "Duck", diff = "Easy", lives = 5, color = { 0.96, 0.82, 0.18 }, msg = "Quack.", art = {
+    "...####...",
+    "..######..",
+    "..######..",
+    "#.######..",
+    "##########",
+    ".########.",
+    ".########.",
+    "..######..",
+    "..........",
+    "..........",
+  } },
+  { name = "Apple", diff = "Easy", lives = 5, color = { 0.90, 0.22, 0.24 }, msg = "An apple a day.", art = {
+    "....##....",
+    "....#.....",
+    ".########.",
+    "##########",
+    "##########",
+    "##########",
+    "##########",
+    ".########.",
+    ".########.",
+    "..#....#..",
+  } },
+  { name = "Music", diff = "Medium", lives = 4, color = { 0.68, 0.36, 0.88 }, msg = "Feel the beat.", art = {
+    ".......###",
+    ".......###",
+    ".....#####",
+    ".....#..##",
+    ".....#...#",
+    ".....#...#",
+    "..#..#...#",
+    "###..#...#",
+    "###.......",
+    "###.......",
+  } },
+  { name = "Umbrella", diff = "Medium", lives = 4, color = { 0.18, 0.76, 0.72 }, msg = "Stay dry.", art = {
+    "....#.....",
+    "..#####...",
+    ".#######..",
+    "#########.",
+    "#########.",
+    "....#.....",
+    "....#.....",
+    "....#..#..",
+    "....##.#..",
+    "....###...",
+  } },
+  { name = "Key", diff = "Medium", lives = 4, color = { 0.92, 0.74, 0.20 }, msg = "Unlocked.", art = {
+    ".####.....",
+    ".#..#.....",
+    ".#..#.....",
+    ".####.....",
+    "..##......",
+    "..##......",
+    "..##......",
+    "..####....",
+    "..##......",
+    "..####....",
+  } },
+  { name = "Crown", diff = "Medium", lives = 4, color = { 0.92, 0.74, 0.20 }, msg = "Royalty.", art = {
+    "#........#",
+    "#.#....#.#",
+    "#.#....#.#",
+    "#.##..##.#",
+    "#.######.#",
+    "##########",
+    "##########",
+    "##.####.##",
+    "##########",
+    "..........",
+  } },
+  { name = "Boat", diff = "Medium", lives = 4, color = { 0.32, 0.56, 0.96 }, msg = "Set sail.", art = {
+    "....#.....",
+    "....##....",
+    "....#.#...",
+    "....#..#..",
+    "....#...#.",
+    "..######..",
+    ".########.",
+    "##########",
+    ".########.",
+    "..######..",
+  } },
+  { name = "Moon", diff = "Easy", lives = 5, color = { 0.92, 0.74, 0.20 }, msg = "Goodnight.", art = {
+    "...####...",
+    "..##......",
+    ".##.......",
+    "##........",
+    "##........",
+    "##........",
+    "##........",
+    ".##.......",
+    "..##......",
+    "...####...",
+  } },
+  { name = "Snowman", diff = "Easy", lives = 5, color = { 0.90, 0.92, 0.96 }, msg = "Chilly.", art = {
+    "...####...",
+    "..#....#..",
+    "..#.##.#..",
+    "...####...",
+    "..######..",
+    ".########.",
+    "#########.",
+    "#.######.#",
+    ".########.",
+    "..######..",
+  } },
+  { name = "Bolt", diff = "Medium", lives = 4, color = { 0.96, 0.82, 0.18 }, msg = "Zap!", art = {
+    ".....###..",
+    "....###...",
+    "...###....",
+    "..######..",
+    "..#####...",
+    ".....###..",
+    "....###...",
+    "...###....",
+    "..###.....",
+    ".##.......",
+  } },
+  { name = "House", diff = "Easy", lives = 5, color = { 0.62, 0.42, 0.24 }, msg = "Home sweet home.", art = {
+    "....##....",
+    "...####...",
+    "..######..",
+    ".########.",
+    "##########",
+    "##.####.##",
+    "##.####.##",
+    "##########",
+    "###....###",
+    "###....###",
+  } },
+  { name = "Anchor", diff = "Medium", lives = 4, color = { 0.55, 0.62, 0.72 }, msg = "Anchors aweigh.", art = {
+    "....##....",
+    "...#..#...",
+    "....##....",
+    "....##....",
+    "#...##...#",
+    "#...##...#",
+    "#..####..#",
+    ".#.####.#.",
+    ".########.",
+    "..######..",
+  } },
+  { name = "Invader", diff = "Hard", lives = 3, color = { 0.62, 0.86, 0.26 }, msg = "Game on.", art = {
+    "..#....#..",
+    "...#..#...",
+    "..######..",
+    ".##.##.##.",
+    "##########",
+    "#.######.#",
+    "#.#....#.#",
+    "...#..#...",
+    "..#....#..",
+    "..#....#..",
+  } },
+  { name = "Cup", diff = "Easy", lives = 5, color = { 0.62, 0.42, 0.24 }, msg = "Fresh brew.", art = {
+    "..........",
+    "##########",
+    "#........#",
+    "#......#.#",
+    "#......#.#",
+    "#........#",
+    "#......#.#",
+    "#........#",
+    ".########.",
+    "..######..",
+  } },
+  { name = "Balloon", diff = "Easy", lives = 5, color = { 0.92, 0.32, 0.72 }, msg = "Up we go.", art = {
+    "..######..",
+    ".########.",
+    "##########",
+    "##########",
+    ".########.",
+    "..######..",
+    "...####...",
+    "....##....",
+    "....#.....",
+    "...#......",
   } },
 }
 
@@ -112,7 +371,7 @@ function Logic.parse(puzzle)
     for c = 1, cols do sol[r][c] = (art[r]:sub(c, c) == "#") end
   end
   return { name = puzzle.name, msg = puzzle.msg, diff = puzzle.diff,
-           lives = puzzle.lives or 3, rows = rows, cols = cols, sol = sol }
+           lives = puzzle.lives or 3, color = puzzle.color, rows = rows, cols = cols, sol = sol }
 end
 
 function Logic.runs(line, n)
@@ -245,7 +504,8 @@ local function renderCell(r, c)
   local cell = cells[r][c]
   local v = state.fill[r][c]
   if v == 1 then
-    cell.bg:SetColorTexture(FILLED[1], FILLED[2], FILLED[3], 1)
+    local ink = state.p.color or FILLED
+    cell.bg:SetColorTexture(ink[1], ink[2], ink[3], 1)
     cell.fs:SetText("")
     if state.hinted[r][c] then cell.star:Show() else cell.star:Hide() end
   else
@@ -454,12 +714,16 @@ function loadPuzzle(index)
   picker:Hide(); player:Show()
 end
 
+local pickerList, pickerVP, pickerScroll, pickerMax = nil, nil, 0, 0
+
 local function showPicker()
   if player then player:Hide() end
   picker:Show()
+  pickerScroll = 0
+  if pickerList and pickerVP then pickerList:SetPoint("TOPLEFT", pickerVP, "TOPLEFT", 0, 0) end
   for _, row in ipairs(picker.rows) do
     local solved = ArcadeDB.nonoSolved and ArcadeDB.nonoSolved[PUZZLES[row.index].name]
-    row.check:SetText(solved and "|cff40ff40done|r" or "")
+    row.check:SetText(solved and "|cff40ff40\226\156\147|r" or "")
   end
   ns.SetInfo("")
 end
@@ -468,22 +732,49 @@ local function buildPicker()
   picker = CreateFrame("Frame", nil, frame)
   picker:SetAllPoints()
   local head = picker:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  head:SetPoint("TOP", 0, -6); head:SetText("Pick a picture")
+  head:SetPoint("TOP", 0, -6); head:SetText("Pick a picture  (scroll for more)")
+
+  local vpH = ns.CONTENT_H - 34
+  pickerVP = CreateFrame("Frame", nil, picker)
+  pickerVP:SetPoint("TOPLEFT", 2, -30)
+  pickerVP:SetSize(ns.CONTENT_W - 4, vpH)
+  pickerVP:SetClipsChildren(true)
+  pickerVP:EnableMouseWheel(true)
+
+  pickerList = CreateFrame("Frame", nil, pickerVP)
+  pickerList:SetPoint("TOPLEFT", 0, 0)
+
+  local cols, hg, vg, bh = 2, 8, 6, 36
+  local bw = (ns.CONTENT_W - 4 - hg) / cols
   picker.rows = {}
-  local bw, bh = ns.CONTENT_W - 60, 42
   for i = 1, #PUZZLES do
-    local b = ns.NewButton(picker, "", bw, bh)
-    b:SetPoint("TOP", 0, -40 - (i - 1) * (bh + 8))
-    local nm = b:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    nm:SetPoint("LEFT", 12, 0)
-    nm:SetText(PUZZLES[i].name .. "  |cff888888" .. #PUZZLES[i].art .. "x" .. #PUZZLES[i].art[1]
-               .. "  " .. PUZZLES[i].diff .. "|r")
-    local ck = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ck:SetPoint("RIGHT", -12, 0)
+    local p = PUZZLES[i]
+    local b = ns.NewButton(pickerList, "", bw, bh)
+    local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
+    b:SetPoint("TOPLEFT", col * (bw + hg), -row * (bh + vg))
+    local sw = b:CreateTexture(nil, "ARTWORK")
+    sw:SetSize(16, 16); sw:SetPoint("LEFT", 8, 0)
+    sw:SetColorTexture(p.color[1], p.color[2], p.color[3])
+    local nm = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    nm:SetPoint("LEFT", 30, 6); nm:SetText(p.name)
+    local sub = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    sub:SetPoint("LEFT", 30, -8)
+    sub:SetText("|cff888888" .. #p.art .. "x" .. #p.art[1] .. "  " .. p.diff .. "|r")
+    local ck = b:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    ck:SetPoint("RIGHT", -8, 0)
     b.index, b.check = i, ck
     b:SetScript("OnClick", function() loadPuzzle(i) end)
     picker.rows[i] = b
   end
+  local rowsCount = math.ceil(#PUZZLES / cols)
+  local listH = rowsCount * (bh + vg)
+  pickerList:SetSize(ns.CONTENT_W - 4, listH)
+  pickerMax = math.max(0, listH - vpH)
+
+  pickerVP:SetScript("OnMouseWheel", function(_, delta)
+    pickerScroll = math.max(0, math.min(pickerMax, pickerScroll - delta * 40))
+    pickerList:SetPoint("TOPLEFT", pickerVP, "TOPLEFT", 0, pickerScroll)
+  end)
 end
 
 local function build(content)

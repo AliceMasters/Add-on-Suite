@@ -1,5 +1,5 @@
 Bejeweled + Azeroth Arcade — automated QA proof
-Generated: 2026-09-19 22:52 UTC  (CI reproduces this on every push)
+Generated: 2026-09-19 23:06 UTC  (CI reproduces this on every push)
 ============================================================
 
 $ python tests/syntax_check.py
@@ -23,11 +23,11 @@ $ python tests/run_lua_tests.py 120 150   # real Bejeweled.lua
 Loaded real Bejeweled.lua into embedded Lua 5.5
 ----------------------------------------------------------------
 real-Lua integration: 120 games x 150 moves = 18000 moves
-special gems observed on-board across run: 10647
+special gems observed on-board across run: 9912
 result: ALL PASS
 
-$ python tests/run_arcade_tests.py        # real Arcade addon
+$ python tests/run_arcade_tests.py        # real Arcade addon, 27 nonogram puzzles
 Loaded real Arcade addon (5 files) into embedded Lua 5.5
 Registered games: Nonogram, 2048, Minesweeper, Snake
 ----------------------------------------------------------------
-arcade integration: 35 passed, 0 failed
+arcade integration: 101 passed, 0 failed
