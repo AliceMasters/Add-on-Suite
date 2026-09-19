@@ -1,6 +1,8 @@
 # Add-on Suite
 
-World of Warcraft addons I'm working on. One so far, more to come.
+World of Warcraft addons I'm working on — arcade games that live in a window
+inside the game, no alt-tabbing. Everything is logic-tested headlessly (see
+`tests/`, run in CI on every push).
 
 ## Bejeweled
 
@@ -31,6 +33,27 @@ Enable it on the character screen (AddOns button), then type `/bej` in game.
 
 Built for retail. Drag the title bar to move the window, click a gem and then
 a neighbor to swap — or just drag one onto the other.
+
+## Azeroth Arcade
+
+One addon, a whole cabinet of games. Open it with `/arcade` (or the dice on the
+minimap) and pick from the menu:
+
+- **Nonogram** — the star. Solve row/column clues to reveal a hidden picture,
+  with lives (a wrong fill costs a heart), bold 5×5 gridlines, a hint button,
+  and several hand-drawn puzzles across difficulties. Left-click fills,
+  right-click marks an X, drag to paint X's.
+- **2048** — slide tiles with the arrow keys or WASD; merge up to 2048.
+- **Minesweeper** — left-click reveals, right-click flags; classic first-click
+  safety and flood-fill.
+- **Snake** — arrow keys / WASD; eat, grow, don't crash.
+
+Each game keeps a best score (or puzzles-solved), shared across the cabinet.
+
+### Getting it running
+
+Copy the `Arcade` folder into the same `AddOns` directory, enable it on the
+character screen, and type `/arcade`.
 
 ## License
 

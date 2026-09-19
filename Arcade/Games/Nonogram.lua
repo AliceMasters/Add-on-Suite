@@ -1,0 +1,551 @@
+--[[ Azeroth Arcade — Nonogram (Picross).
+     Fill cells to match the row/column clues and reveal a hidden picture.
+     Lives mode: a wrong fill costs a heart. Left = fill, Right = mark X (drag).
+     The star of the cabinet. ]]
+local ADDON, ns = ...
+
+------------------------------------------------------------------------
+-- Puzzle library ('#' filled; every row must be the same width)
+------------------------------------------------------------------------
+local PUZZLES = {
+  { name = "Smiley", diff = "Easy", lives = 5, msg = "Made you smile.", art = {
+    "....#######....",
+    "..###########..",
+    ".#############.",
+    "###############",
+    "##.##.....##.##",
+    "##.##.....##.##",
+    "###############",
+    "###############",
+    "##.#######.####",
+    "###.#####.####.",
+    ".##.......###..",
+    ".#############.",
+    "..###########..",
+    "....#######....",
+    "...............",
+  } },
+  { name = "Heart", diff = "Medium", lives = 4, msg = "Solved with love.", art = {
+    "...###...###...",
+    "..###########..",
+    ".#############.",
+    ".#############.",
+    ".#############.",
+    "..###########..",
+    "...#########...",
+    "....#######....",
+    ".....#####.....",
+    "......###......",
+    ".......#.......",
+    "...............",
+    "...............",
+    "...............",
+    "...............",
+  } },
+  { name = "Diamond", diff = "Medium", lives = 4, msg = "A gem.", art = {
+    ".......#.......",
+    "......###......",
+    ".....#####.....",
+    "....#######....",
+    "...#########...",
+    "..###########..",
+    ".#############.",
+    "###############",
+    ".#############.",
+    "..###########..",
+    "...#########...",
+    "....#######....",
+    ".....#####.....",
+    "......###......",
+    ".......#.......",
+  } },
+  { name = "Sword", diff = "Hard", lives = 3, msg = "Sharp work.", art = {
+    ".......#.......",
+    ".......#.......",
+    ".......#.......",
+    ".......#.......",
+    ".......#.......",
+    ".......#.......",
+    ".......#.......",
+    "....#######....",
+    ".......#.......",
+    ".......#.......",
+    "......###......",
+    "......###......",
+    ".....#####.....",
+    "...............",
+    "...............",
+  } },
+  { name = "Special Delivery", diff = "Hard", lives = 3, msg = "Delivered, just for you.", art = {
+    ".....#...#.....",
+    "....##...##....",
+    "....###.###....",
+    "......###......",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    ".######.######.",
+    "...............",
+  } },
+}
+
+------------------------------------------------------------------------
+-- Pure logic
+------------------------------------------------------------------------
+local Logic = {}
+ns.logic["nonogram"] = Logic
+Logic.puzzles = PUZZLES
+
+function Logic.parse(puzzle)
+  local art = puzzle.art
+  local rows, cols = #art, #art[1]
+  local sol = {}
+  for r = 1, rows do
+    assert(#art[r] == cols, "nonogram '" .. puzzle.name .. "' row " .. r .. " wrong width")
+    sol[r] = {}
+    for c = 1, cols do sol[r][c] = (art[r]:sub(c, c) == "#") end
+  end
+  return { name = puzzle.name, msg = puzzle.msg, diff = puzzle.diff,
+           lives = puzzle.lives or 3, rows = rows, cols = cols, sol = sol }
+end
+
+function Logic.runs(line, n)
+  local out, run = {}, 0
+  for i = 1, n do
+    if line[i] then run = run + 1
+    elseif run > 0 then out[#out + 1] = run; run = 0 end
+  end
+  if run > 0 then out[#out + 1] = run end
+  return out
+end
+
+function Logic.rowClue(p, r)
+  local line = {}
+  for c = 1, p.cols do line[c] = p.sol[r][c] end
+  return Logic.runs(line, p.cols)
+end
+
+function Logic.colClue(p, c)
+  local line = {}
+  for r = 1, p.rows do line[r] = p.sol[r][c] end
+  return Logic.runs(line, p.rows)
+end
+
+function Logic.new(index)
+  local p = Logic.parse(PUZZLES[index])
+  local st = { p = p, rows = p.rows, cols = p.cols, index = index,
+               won = false, dead = false, lives = p.lives, maxLives = p.lives,
+               mistakes = 0, fill = {}, hinted = {} }
+  for r = 1, p.rows do
+    st.fill[r] = {}; st.hinted[r] = {}
+    for c = 1, p.cols do st.fill[r][c] = 0; st.hinted[r][c] = false end  -- 0 empty,1 filled,2 X
+  end
+  st.rowClues, st.colClues = {}, {}
+  for r = 1, p.rows do st.rowClues[r] = Logic.rowClue(p, r) end
+  for c = 1, p.cols do st.colClues[c] = Logic.colClue(p, c) end
+  return st
+end
+
+-- Attempt to fill a cell. Correct -> filled; wrong -> costs a life and auto-Xs.
+-- Returns "correct", "mistake", "win", "dead", or "none".
+function Logic.fill(st, r, c)
+  if st.won or st.dead or st.fill[r][c] ~= 0 then return "none" end
+  if st.p.sol[r][c] then
+    st.fill[r][c] = 1
+    if Logic.checkWin(st) then return "win" end
+    return "correct"
+  else
+    st.fill[r][c] = 2
+    st.mistakes = st.mistakes + 1
+    st.lives = st.lives - 1
+    if st.lives <= 0 then st.lives = 0; st.dead = true; return "dead" end
+    return "mistake"
+  end
+end
+
+-- Free notation: set an X (2) or clear (0). Never touches a correct fill.
+function Logic.setMark(st, r, c, val)
+  if st.won or st.dead or st.fill[r][c] == 1 then return false end
+  if st.fill[r][c] == val then return false end
+  st.fill[r][c] = val
+  return true
+end
+
+function Logic.hint(st)
+  if st.won or st.dead then return nil end
+  local choices = {}
+  for r = 1, st.rows do for c = 1, st.cols do
+    if st.p.sol[r][c] and st.fill[r][c] ~= 1 then choices[#choices + 1] = { r, c } end
+  end end
+  if #choices == 0 then return nil end
+  local pick = choices[math.random(#choices)]
+  st.fill[pick[1]][pick[2]] = 1
+  st.hinted[pick[1]][pick[2]] = true
+  Logic.checkWin(st)
+  return pick
+end
+
+function Logic.checkWin(st)
+  for r = 1, st.rows do for c = 1, st.cols do
+    if st.p.sol[r][c] ~= (st.fill[r][c] == 1) then return false end
+  end end
+  st.won = true
+  return true
+end
+
+local function listEq(a, b)
+  if #a ~= #b then return false end
+  for i = 1, #a do if a[i] ~= b[i] then return false end end
+  return true
+end
+
+function Logic.lineSatisfied(st, kind, idx)
+  local line = {}
+  if kind == "row" then
+    for c = 1, st.cols do line[c] = (st.fill[idx][c] == 1) end
+    return listEq(Logic.runs(line, st.cols), st.rowClues[idx])
+  else
+    for r = 1, st.rows do line[r] = (st.fill[r][idx] == 1) end
+    return listEq(Logic.runs(line, st.rows), st.colClues[idx])
+  end
+end
+
+------------------------------------------------------------------------
+-- View
+------------------------------------------------------------------------
+local frame, picker, player, heartsRow, heartFS = nil, nil, nil, nil, {}
+local cellPool, rowFSPool, colFSPool, linePool = {}, {}, {}, {}
+local cells, rowFS, colFS, lines = { _flat = {} }, { _flat = {} }, { _flat = {} }, { _flat = {} }
+local state, overlay, overlayText, overlaySub, overlayBtn
+local painting, paintVal, paintMouse = false, 0, nil
+local cellSize, gridX, gridY = 20, 0, 0
+
+local FILLED = { 0.13, 0.14, 0.20 }
+local CREAM_A = { 0.94, 0.92, 0.86 }
+local CREAM_B = { 0.86, 0.84, 0.76 }
+
+local function emptyShade(r, c)
+  return ((math.floor((r - 1) / 5) + math.floor((c - 1) / 5)) % 2 == 0) and CREAM_A or CREAM_B
+end
+
+local function clueText(clue, vertical)
+  if #clue == 0 then return "0" end
+  local parts = {}
+  for i = 1, #clue do parts[i] = tostring(clue[i]) end
+  return table.concat(parts, vertical and "\n" or " ")
+end
+
+local function renderCell(r, c)
+  local cell = cells[r][c]
+  local v = state.fill[r][c]
+  if v == 1 then
+    cell.bg:SetColorTexture(FILLED[1], FILLED[2], FILLED[3], 1)
+    cell.fs:SetText("")
+    if state.hinted[r][c] then cell.star:Show() else cell.star:Hide() end
+  else
+    local col = emptyShade(r, c)
+    cell.bg:SetColorTexture(col[1], col[2], col[3], 1)
+    cell.fs:SetText(v == 2 and "x" or "")
+    cell.star:Hide()
+  end
+end
+
+local function refreshClue(kind, idx)
+  local fs = (kind == "row") and rowFS[idx] or colFS[idx]
+  if not fs then return end
+  if Logic.lineSatisfied(state, kind, idx) then fs:SetTextColor(0.45, 0.45, 0.48)
+  else fs:SetTextColor(0.95, 0.93, 0.86) end
+end
+
+local function updateHearts()
+  for i = 1, #heartFS do
+    if i <= state.maxLives then
+      heartFS[i]:Show()
+      heartFS[i]:SetText(i <= state.lives and "|cffff3333" .. "\226\153\165" .. "|r"
+                                            or "|cff444444" .. "\226\153\165" .. "|r")
+    else
+      heartFS[i]:Hide()
+    end
+  end
+end
+
+local function renderAll()
+  for r = 1, state.rows do for c = 1, state.cols do renderCell(r, c) end end
+  for r = 1, state.rows do refreshClue("row", r) end
+  for c = 1, state.cols do refreshClue("col", c) end
+end
+
+local function updateInfo()
+  ns.SetInfo(state.p.diff .. "  \226\128\162  " .. state.p.name
+             .. "  \226\128\162  Lives " .. state.lives .. "/" .. state.maxLives)
+end
+
+local function markSolved(index)
+  ArcadeDB.nonoSolved = ArcadeDB.nonoSolved or {}
+  ArcadeDB.nonoSolved[PUZZLES[index].name] = true
+  local n = 0
+  for _ in pairs(ArcadeDB.nonoSolved) do n = n + 1 end
+  ns.SubmitBest("nonogram", n)
+end
+
+local function endWin()
+  for r = 1, state.rows do for c = 1, state.cols do
+    state.fill[r][c] = state.p.sol[r][c] and 1 or state.fill[r][c]
+    renderCell(r, c)
+  end end
+  markSolved(state.index)
+  ns.Sound(SOUNDKIT and SOUNDKIT.LEVELUP)
+  overlayText:SetText("|cffffd200" .. state.p.name .. "|r")
+  overlaySub:SetText(state.p.msg or "Solved!")
+  overlayBtn:SetText("More Puzzles")
+  overlayBtn:SetScript("OnClick", function() ns.PlayGame("nonogram") end)
+  overlay:Show()
+end
+
+local loadPuzzle   -- fwd
+
+local function endDead()
+  ns.Sound(SOUNDKIT and SOUNDKIT.IG_QUEST_FAILED)
+  overlayText:SetText("|cffff5555Out of hearts|r")
+  overlaySub:SetText("The picture was " .. state.p.name .. ".")
+  overlayBtn:SetText("Try Again")
+  overlayBtn:SetScript("OnClick", function() loadPuzzle(state.index) end)
+  overlay:Show()
+end
+
+local function afterFill(result, r, c)
+  renderCell(r, c)
+  refreshClue("row", r); refreshClue("col", c)
+  if result == "mistake" then updateHearts(); updateInfo(); ns.Sound(SOUNDKIT and SOUNDKIT.IG_QUEST_FAILED)
+  elseif result == "correct" then ns.Sound(SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION)
+  elseif result == "win" then endWin()
+  elseif result == "dead" then updateHearts(); updateInfo(); endDead() end
+end
+
+local mode = "fill"   -- left-click action; right-click always marks
+
+local function doMark(r, c, val)
+  if Logic.setMark(state, r, c, val) then
+    renderCell(r, c); refreshClue("row", r); refreshClue("col", c)
+  end
+end
+
+-- pooling ----------------------------------------------------------------
+local function acquireCell(parent)
+  local b = table.remove(cellPool)
+  if b then b:Show(); return b end
+  b = CreateFrame("Button", nil, parent)
+  b.bg = b:CreateTexture(nil, "BACKGROUND"); b.bg:SetAllPoints()
+  b.star = b:CreateTexture(nil, "OVERLAY"); b.star:SetSize(10, 10); b.star:SetPoint("TOPRIGHT", -1, -1)
+  b.star:SetColorTexture(1, 0.82, 0.1); b.star:Hide()
+  b.fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormal"); b.fs:SetPoint("CENTER"); b.fs:SetTextColor(0.5, 0.5, 0.55)
+  local hl = b:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.10)
+  b:SetScript("OnMouseDown", function(self, button)
+    if state.won or state.dead then return end
+    local r, c = self.r, self.c
+    if button == "LeftButton" and mode == "fill" then
+      afterFill(Logic.fill(state, r, c), r, c)          -- deliberate single fill
+    else
+      if state.fill[r][c] == 1 then return end
+      paintVal = (state.fill[r][c] == 2) and 0 or 2
+      paintMouse = button; painting = true
+      doMark(r, c, paintVal)
+    end
+  end)
+  b:SetScript("OnEnter", function(self) if painting then doMark(self.r, self.c, paintVal) end end)
+  return b
+end
+
+local function acquireFS(parent, pool)
+  local fs = table.remove(pool)
+  if fs then fs:Show(); return fs end
+  return parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+end
+
+local function acquireLine(parent)
+  local t = table.remove(linePool)
+  if t then t:Show(); return t end
+  t = parent:CreateTexture(nil, "OVERLAY")
+  t:SetColorTexture(0.05, 0.05, 0.06, 0.9)
+  return t
+end
+
+local function clearPlayer()
+  for _, b in ipairs(cells._flat) do b:Hide(); b:ClearAllPoints(); cellPool[#cellPool + 1] = b end
+  for _, fs in ipairs(rowFS._flat) do fs:Hide(); fs:ClearAllPoints(); rowFSPool[#rowFSPool + 1] = fs end
+  for _, fs in ipairs(colFS._flat) do fs:Hide(); fs:ClearAllPoints(); colFSPool[#colFSPool + 1] = fs end
+  for _, t in ipairs(lines._flat) do t:Hide(); t:ClearAllPoints(); linePool[#linePool + 1] = t end
+  cells, rowFS, colFS, lines = { _flat = {} }, { _flat = {} }, { _flat = {} }, { _flat = {} }
+end
+
+function loadPuzzle(index)
+  state = Logic.new(index)
+  overlay:Hide()
+  clearPlayer()
+
+  local maxRow, maxCol = 1, 1
+  for r = 1, state.rows do maxRow = math.max(maxRow, #state.rowClues[r]) end
+  for c = 1, state.cols do maxCol = math.max(maxCol, #state.colClues[c]) end
+  local clueW = maxRow * 14 + 6
+  local clueH = maxCol * 12 + 4
+
+  local availW = ns.CONTENT_W - clueW - 4
+  local availH = ns.CONTENT_H - clueH - 60      -- room for hearts row + controls
+  cellSize = math.max(15, math.min(math.floor(math.min(availW / state.cols, availH / state.rows)), 34))
+
+  local totalW = clueW + state.cols * cellSize
+  local x0 = math.floor((ns.CONTENT_W - totalW) / 2)
+  gridX, gridY = x0 + clueW, -(clueH + 22)      -- 22 = hearts row height
+
+  -- column clues
+  for c = 1, state.cols do
+    local fs = acquireFS(player, colFSPool)
+    fs:SetSize(cellSize, clueH); fs:SetJustifyH("CENTER"); fs:SetJustifyV("BOTTOM")
+    fs:SetPoint("TOPLEFT", player, "TOPLEFT", gridX + (c - 1) * cellSize, gridY + clueH + 2)
+    fs:SetText(clueText(state.colClues[c], true))
+    colFS[c] = fs; colFS._flat[#colFS._flat + 1] = fs
+  end
+  -- row clues
+  for r = 1, state.rows do
+    local fs = acquireFS(player, rowFSPool)
+    fs:SetSize(clueW - 4, cellSize); fs:SetJustifyH("RIGHT"); fs:SetJustifyV("MIDDLE")
+    fs:SetPoint("TOPLEFT", player, "TOPLEFT", x0, gridY - (r - 1) * cellSize)
+    fs:SetText(clueText(state.rowClues[r], false))
+    rowFS[r] = fs; rowFS._flat[#rowFS._flat + 1] = fs
+  end
+  -- cells
+  for r = 1, state.rows do
+    cells[r] = {}
+    for c = 1, state.cols do
+      local b = acquireCell(player)
+      b:SetSize(cellSize - 1, cellSize - 1)
+      b:SetPoint("TOPLEFT", player, "TOPLEFT", gridX + (c - 1) * cellSize, gridY - (r - 1) * cellSize)
+      b.r, b.c = r, c
+      cells[r][c] = b; cells._flat[#cells._flat + 1] = b
+      renderCell(r, c)
+    end
+  end
+  -- bold 5-block separators + border
+  local gridPixW, gridPixH = state.cols * cellSize, state.rows * cellSize
+  for c = 0, state.cols, 5 do
+    local t = acquireLine(player)
+    t:SetSize(2, gridPixH + 2)
+    t:SetPoint("TOPLEFT", player, "TOPLEFT", gridX + c * cellSize - 1, gridY + 1)
+    lines._flat[#lines._flat + 1] = t
+  end
+  for r = 0, state.rows, 5 do
+    local t = acquireLine(player)
+    t:SetSize(gridPixW + 2, 2)
+    t:SetPoint("TOPLEFT", player, "TOPLEFT", gridX - 1, gridY - r * cellSize + 1)
+    lines._flat[#lines._flat + 1] = t
+  end
+
+  for r = 1, state.rows do refreshClue("row", r) end
+  for c = 1, state.cols do refreshClue("col", c) end
+  updateHearts()
+  updateInfo()
+
+  picker:Hide(); player:Show()
+end
+
+local function showPicker()
+  if player then player:Hide() end
+  picker:Show()
+  for _, row in ipairs(picker.rows) do
+    local solved = ArcadeDB.nonoSolved and ArcadeDB.nonoSolved[PUZZLES[row.index].name]
+    row.check:SetText(solved and "|cff40ff40done|r" or "")
+  end
+  ns.SetInfo("")
+end
+
+local function buildPicker()
+  picker = CreateFrame("Frame", nil, frame)
+  picker:SetAllPoints()
+  local head = picker:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  head:SetPoint("TOP", 0, -6); head:SetText("Pick a picture")
+  picker.rows = {}
+  local bw, bh = ns.CONTENT_W - 60, 42
+  for i = 1, #PUZZLES do
+    local b = ns.NewButton(picker, "", bw, bh)
+    b:SetPoint("TOP", 0, -40 - (i - 1) * (bh + 8))
+    local nm = b:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    nm:SetPoint("LEFT", 12, 0)
+    nm:SetText(PUZZLES[i].name .. "  |cff888888" .. #PUZZLES[i].art .. "x" .. #PUZZLES[i].art[1]
+               .. "  " .. PUZZLES[i].diff .. "|r")
+    local ck = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ck:SetPoint("RIGHT", -12, 0)
+    b.index, b.check = i, ck
+    b:SetScript("OnClick", function() loadPuzzle(i) end)
+    picker.rows[i] = b
+  end
+end
+
+local function build(content)
+  frame = CreateFrame("Frame", nil, content)
+  frame:SetAllPoints()
+
+  player = CreateFrame("Frame", nil, frame)
+  player:SetAllPoints()
+  player:SetScript("OnUpdate", function()
+    if painting and paintMouse and not IsMouseButtonDown(paintMouse) then painting = false end
+  end)
+  player:Hide()
+
+  -- hearts row (top)
+  heartsRow = CreateFrame("Frame", nil, player)
+  heartsRow:SetPoint("TOP", 0, -2); heartsRow:SetSize(200, 18)
+  for i = 1, 6 do
+    local fs = heartsRow:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    fs:SetPoint("CENTER", heartsRow, "CENTER", (i - 3.5) * 22, 0)
+    heartFS[i] = fs
+  end
+
+  -- controls
+  local puzzlesBtn = ns.NewButton(player, "Puzzles", 80, 22, function() showPicker() end)
+  puzzlesBtn:SetPoint("BOTTOMLEFT", 4, 4)
+  local modeBtn = ns.NewButton(player, "Mode: Fill", 90, 22)
+  modeBtn:SetPoint("BOTTOM", -50, 4)
+  modeBtn:SetScript("OnClick", function()
+    mode = (mode == "fill") and "mark" or "fill"
+    modeBtn:SetText(mode == "fill" and "Mode: Fill" or "Mode: X")
+  end)
+  local hintBtn = ns.NewButton(player, "Hint", 60, 22, function()
+    if state and Logic.hint(state) then
+      renderAll()
+      if state.won then endWin() end
+    end
+  end)
+  hintBtn:SetPoint("BOTTOM", 40, 4)
+  local hint = player:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  hint:SetPoint("BOTTOMRIGHT", -6, 8); hint:SetText("L: fill  \226\128\162  R: X  \226\128\162  drag to X")
+
+  overlay = CreateFrame("Frame", nil, player)
+  overlay:SetAllPoints(); overlay:SetFrameLevel(player:GetFrameLevel() + 40)
+  local obg = overlay:CreateTexture(nil, "BACKGROUND"); obg:SetAllPoints(); obg:SetColorTexture(0, 0, 0, 0.6)
+  overlayText = overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge"); overlayText:SetPoint("CENTER", 0, 34)
+  overlaySub = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge"); overlaySub:SetPoint("CENTER", 0, 6)
+  overlayBtn = ns.NewButton(overlay, "More Puzzles", 140, 26)
+  overlayBtn:SetPoint("CENTER", 0, -34)
+  overlay:Hide()
+
+  buildPicker()
+end
+
+local function start(content)
+  if not frame then build(content) end
+  frame:Show()
+  showPicker()
+end
+
+local function stop()
+  if frame then frame:Hide() end
+end
+
+ns.Register({ id = "nonogram", name = "Nonogram", desc = "Reveal a hidden picture. (Her favorite.)",
+              start = start, stop = stop })

@@ -4,7 +4,8 @@ import os, sys, glob
 from luaparser import ast
 
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-targets = glob.glob(os.path.join(root, "Bejeweled", "*.lua"))
+targets = (glob.glob(os.path.join(root, "Bejeweled", "*.lua"))
+           + glob.glob(os.path.join(root, "Arcade", "**", "*.lua"), recursive=True))
 fails = 0
 for path in sorted(targets):
     try:

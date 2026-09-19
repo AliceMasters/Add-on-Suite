@@ -82,5 +82,6 @@ _G.DEFAULT_CHAT_FRAME = makeobj(FrameMethods, "frame")
 _G.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) table.insert(CHAT_LOG, msg) end
 
 _G.SlashCmdList = {}
+_G.IsMouseButtonDown = function() return false end
 _G.PlaySound = function() end
 _G.SOUNDKIT = setmetatable({}, { __index = function() return 0 end })

@@ -1,0 +1,12 @@
+## Interface: 120100
+## Title: Azeroth Arcade
+## Notes: A cabinet of arcade mini-games in one window. Type /arcade to play.
+## Author: Alice
+## Version: 1.0
+## SavedVariables: ArcadeDB
+
+Core.lua
+Games\Nonogram.lua
+Games\Twenty48.lua
+Games\Minesweeper.lua
+Games\Snake.lua

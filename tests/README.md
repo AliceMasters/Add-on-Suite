@@ -8,7 +8,14 @@ pip install -r tests/requirements.txt
 python tests/syntax_check.py          # 1. does the Lua parse?
 python tests/model_sim.py 300 200     # 2. reference-model fuzz (60k moves)
 python tests/run_lua_tests.py 120 150 # 3. the REAL Bejeweled.lua (18k moves)
+python tests/run_arcade_tests.py      # 4. the REAL Arcade addon (2048/Mines/Snake/Nonogram)
 ```
+
+`run_arcade_tests.py` loads every Arcade Lua file into one shared namespace
+(exactly as WoW does) and exercises each game's logic through its real functions
+— 2048 merge scenarios + fuzz, Minesweeper adjacency/flood/first-click-safety
+fuzz, Snake collision/growth fuzz, and Nonogram solve/lives/hint mechanics
+across every built-in puzzle.
 
 CI runs all three on every push (`.github/workflows/tests.yml`).
 

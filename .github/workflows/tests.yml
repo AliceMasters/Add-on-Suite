@@ -24,5 +24,8 @@ jobs:
       - name: Reference-model fuzz (60k moves)
         run: python tests/model_sim.py 300 200
 
-      - name: Real-Lua integration (18k moves)
+      - name: Real-Lua integration — Bejeweled (18k moves)
         run: python tests/run_lua_tests.py 120 150
+
+      - name: Real-Lua integration — Azeroth Arcade (2048 / Minesweeper / Snake / Nonogram)
+        run: python tests/run_arcade_tests.py
