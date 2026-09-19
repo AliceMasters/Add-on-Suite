@@ -1,0 +1,8 @@
+## Interface: 120100
+## Title: Bejeweled
+## Notes: A full-featured single-player match-3 gem game. Type /bej to play.
+## Author: Alice
+## Version: 1.0
+## SavedVariables: BejeweledDB
+
+Bejeweled.lua
