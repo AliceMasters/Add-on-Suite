@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install QA dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Lua syntax check
+        run: python tests/syntax_check.py
+
+      - name: Reference-model fuzz (60k moves)
+        run: python tests/model_sim.py 300 200
+
+      - name: Real-Lua integration (18k moves)
+        run: python tests/run_lua_tests.py 120 150

@@ -1,0 +1,2 @@
+lupa>=2.0        # embedded Lua runtime — runs the real Bejeweled.lua headlessly
+luaparser>=3.2   # Lua syntax validation

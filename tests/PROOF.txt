@@ -1,0 +1,22 @@
+Bejeweled — automated QA proof
+Generated: 2026-09-19 21:59 UTC  (run locally; CI reproduces this on every push)
+============================================================
+
+$ python tests/syntax_check.py
+  OK   Bejeweled\Bejeweled.lua
+syntax: ALL OK
+
+$ python tests/model_sim.py 300 200
+----------------------------------------------------------------
+model fuzz: 300 games x 200 moves = 60000 moves, 0 invariant failures
+  [PASS] match-4 -> exactly one flame at swapped cell
+  [PASS] match-5 -> one hyper
+scenarios: 2/2 passed
+result: ALL PASS
+
+$ python tests/run_lua_tests.py 120 150
+Loaded real Bejeweled.lua into embedded Lua 5.5
+----------------------------------------------------------------
+real-Lua integration: 120 games x 150 moves = 18000 moves
+special gems observed on-board across run: 10952
+result: ALL PASS

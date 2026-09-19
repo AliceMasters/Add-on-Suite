@@ -1,2 +1,6 @@
 # WoW client-generated
 *.bak
+
+# Python QA tooling
+__pycache__/
+*.pyc

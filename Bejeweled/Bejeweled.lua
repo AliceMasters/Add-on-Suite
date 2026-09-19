@@ -16,16 +16,21 @@ local FADE_TIME    = 0.20
 local FALL_TIME    = 0.30
 local IDLE_HINT    = 8            -- seconds idle before auto-hint
 
--- The seven gem types. bg = cell colour (always visible so gems are
--- distinguishable even if an icon file is missing on this client).
+-- The seven gem types.
+--   bg   = cell background colour (always shows the gem's colour)
+--   icon = vertex tint applied to the icon texture. Tinting is what makes a
+--          gem ALWAYS read as its true colour: even if the icon file resolves
+--          to a generic grey crystal, or a recycled button kept a stale
+--          texture from a previous gem, the tint forces it to the right hue.
+--          This is the fix for "gems not showing what they represent."
 local GEMS = {
-  { name = "Ruby",     tex = "Interface\\Icons\\INV_Misc_Gem_Bloodstone_01", bg = {0.55, 0.10, 0.12} },
-  { name = "Sapphire", tex = "Interface\\Icons\\INV_Misc_Gem_Sapphire_02",   bg = {0.12, 0.25, 0.60} },
-  { name = "Emerald",  tex = "Interface\\Icons\\INV_Misc_Gem_Emerald_02",    bg = {0.10, 0.45, 0.18} },
-  { name = "Topaz",    tex = "Interface\\Icons\\INV_Misc_Gem_Topaz_02",      bg = {0.60, 0.50, 0.05} },
-  { name = "Amethyst", tex = "Interface\\Icons\\INV_Misc_Gem_Amethyst_02",   bg = {0.42, 0.15, 0.60} },
-  { name = "Opal",     tex = "Interface\\Icons\\INV_Misc_Gem_Opal_01",       bg = {0.65, 0.32, 0.06} },
-  { name = "Diamond",  tex = "Interface\\Icons\\INV_Misc_Gem_Diamond_04",    bg = {0.55, 0.60, 0.68} },
+  { name = "Ruby",     tex = "Interface\\Icons\\INV_Misc_Gem_Bloodstone_01", bg = {0.45, 0.06, 0.08}, icon = {1.00, 0.28, 0.28} },
+  { name = "Sapphire", tex = "Interface\\Icons\\INV_Misc_Gem_Sapphire_02",   bg = {0.08, 0.18, 0.55}, icon = {0.40, 0.60, 1.00} },
+  { name = "Emerald",  tex = "Interface\\Icons\\INV_Misc_Gem_Emerald_02",    bg = {0.06, 0.38, 0.14}, icon = {0.35, 1.00, 0.45} },
+  { name = "Topaz",    tex = "Interface\\Icons\\INV_Misc_Gem_Topaz_02",      bg = {0.55, 0.44, 0.03}, icon = {1.00, 0.88, 0.22} },
+  { name = "Amethyst", tex = "Interface\\Icons\\INV_Misc_Gem_Amethyst_02",   bg = {0.38, 0.12, 0.58}, icon = {0.82, 0.45, 1.00} },
+  { name = "Opal",     tex = "Interface\\Icons\\INV_Misc_Gem_Opal_01",       bg = {0.58, 0.28, 0.04}, icon = {1.00, 0.62, 0.20} },
+  { name = "Diamond",  tex = "Interface\\Icons\\INV_Misc_Gem_Diamond_04",    bg = {0.30, 0.55, 0.62}, icon = {0.70, 0.95, 1.00} },
 }
 local NCOLORS = #GEMS
 local HYPER_TEX = "Interface\\Icons\\INV_Enchant_ShardPrismaticLarge"
@@ -44,6 +49,7 @@ local score, level, levelScore, levelTarget = 0, 1, 0, 1000
 local lastSwap            -- {r,c} used to place special gems
 local lastInput = 0
 local built = false
+local gameGen = 0         -- bumped on New Game; stale async callbacks check it and bail
 
 local mainFrame, boardFrame, minimapBtn
 local scoreFS, levelFS, bestFS, progress, selMarker
@@ -131,7 +137,7 @@ local function SetGemAppearance(gem)
     local g = GEMS[gem.color]
     b.bg:SetColorTexture(g.bg[1], g.bg[2], g.bg[3], 1)
     b.icon:SetTexture(g.tex)
-    b.icon:SetVertexColor(1, 1, 1)
+    b.icon:SetVertexColor(g.icon[1], g.icon[2], g.icon[3])   -- force true hue (fixes stale/greyscale icons)
     if gem.special == "flame" then
       b.badge:SetTexture(FLAME_TEX)
       b.badge:Show()
@@ -248,7 +254,7 @@ local function AddScore(pts)
     level = level + 1
     levelTarget = math.floor(levelTarget * 1.4)
     Sound(S.level)
-    UIErrorsFrame:AddMessage("Bejeweled — Level " .. level .. "!", 0.4, 1, 0.4, 1, 3)
+    UIErrorsFrame:AddMessage("Bejeweled — Level " .. level .. "!", 0.4, 1, 0.4)
   end
   UpdateUI()
 end
@@ -363,6 +369,7 @@ function Collapse()
     local empty = row
     for rr = 1, empty do
       local gem = NewGem(math.random(NCOLORS), rr, c)
+      board[rr][c] = gem          -- CRITICAL: register the spawned gem in the board grid
       local tx = select(1, CellOffset(rr, c))
       local _, startY = CellOffset(rr - empty, c)   -- above the board
       gem.curX, gem.curY = tx, startY
@@ -385,11 +392,16 @@ function ResolveStep()
   end
   comboLevel = comboLevel + 1
   ProcessMatches(groups)
+  local gen = gameGen
   C_Timer.After(FADE_TIME, Safe(function()
+    if gen ~= gameGen then return end
     RemoveFaded()
     Collapse()
     lastSwap = nil
-    C_Timer.After(FALL_TIME, Safe(ResolveStep))
+    C_Timer.After(FALL_TIME, Safe(function()
+      if gen ~= gameGen then return end
+      ResolveStep()
+    end))
   end))
 end
 
@@ -491,6 +503,7 @@ end
 local function ActivateHyper(hyperGem, otherGem)
   inputLocked = true
   Sound(S.special)
+  local gen = gameGen
   local targetColor = otherGem.color
   hyperGem.removed = true; hyperGem.fading = true
   if targetColor and targetColor > 0 then
@@ -508,8 +521,12 @@ local function ActivateHyper(hyperGem, otherGem)
   for r = 1, ROWS do for c = 1, COLS do if board[r][c] and board[r][c].removed then n = n + 1 end end end
   AddScore(n * 60)
   C_Timer.After(FADE_TIME, Safe(function()
+    if gen ~= gameGen then return end
     RemoveFaded(); Collapse()
-    C_Timer.After(FALL_TIME, Safe(ResolveStep))
+    C_Timer.After(FALL_TIME, Safe(function()
+      if gen ~= gameGen then return end
+      ResolveStep()
+    end))
   end))
 end
 
@@ -526,15 +543,20 @@ local function TrySwap(g1, g2)
     return
   end
 
+  local gen = gameGen
   lastSwap = { r = g2.r, c = g2.c }
   DoSwapAnim(g1, g2, function()
+    if gen ~= gameGen then return end
     if AnyMatch() then
       comboLevel = 0
       ResolveStep()
     else
       -- invalid: swap back
       Sound(S.bad)
-      DoSwapAnim(g1, g2, function() inputLocked = false; lastSwap = nil end)
+      DoSwapAnim(g1, g2, function()
+        if gen ~= gameGen then return end
+        inputLocked = false; lastSwap = nil
+      end)
     end
   end)
 end
@@ -606,6 +628,7 @@ local function NewGame()
   ClearSelection()
   score, level, levelScore, levelTarget = 0, 1, 0, 1000
   comboLevel, lastSwap = 0, nil
+  gameGen = gameGen + 1     -- invalidate any in-flight cascade callbacks
   for r = 1, ROWS do
     for c = 1, COLS do
       local gem = NewGem(ColorAvoiding(r, c), r, c)
@@ -638,7 +661,6 @@ local function BuildUI()
   bg:SetColorTexture(0.04, 0.04, 0.06, 0.94)
 
   -- gold-ish border
-  for _, e in ipairs({ {"TOP",0,1}, {"BOTTOM",0,-1}, {"LEFT",-1,0}, {"RIGHT",1,0} }) do end
   local border = CreateFrame("Frame", nil, f)
   border:SetPoint("TOPLEFT", -1, 1)
   border:SetPoint("BOTTOMRIGHT", 1, -1)
@@ -822,7 +844,8 @@ local function CreateMinimapButton()
       local scale = Minimap:GetEffectiveScale()
       local cx, cy = GetCursorPosition()
       cx, cy = cx / scale, cy / scale
-      BejeweledDB.minimapAngle = math.deg(math.atan2(cy - my, cx - mx))
+      local atan2 = math.atan2 or math.atan   -- atan2 removed in some client Lua builds
+      BejeweledDB.minimapAngle = math.deg(atan2(cy - my, cx - mx))
       UpdatePos()
     end)
   end)
