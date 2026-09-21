@@ -552,6 +552,7 @@ local function markSolved(index)
   local n = 0
   for _ in pairs(ArcadeDB.nonoSolved) do n = n + 1 end
   ns.SubmitBest("nonogram", n)
+  if n >= 5 then ns.Unlock("nono5") end
 end
 
 local function endWin()
@@ -839,4 +840,4 @@ local function stop()
 end
 
 ns.Register({ id = "nonogram", name = "Nonogram", desc = "Reveal a hidden picture. (Her favorite.)",
-              start = start, stop = stop })
+              icon = "Interface\\Icons\\INV_Misc_Book_09", start = start, stop = stop })

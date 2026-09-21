@@ -97,6 +97,7 @@ local function loop(myGen)
     render()
     ns.SetScore(state.score)
     ns.SubmitBest("snake", state.score)
+    if state.score >= 20 then ns.Unlock("snake20") end
     if state.over then showOver(); return end
     local interval = math.max(0.07, 0.16 - state.score * 0.005)
     C_Timer.After(interval, ns.Safe(function() loop(myGen) end))
@@ -173,4 +174,4 @@ local function stop()
 end
 
 ns.Register({ id = "snake", name = "Snake", desc = "Eat, grow, don't crash.",
-              start = start, stop = stop })
+              icon = "Interface\\Icons\\Ability_Hunter_Pet_Snake", start = start, stop = stop })

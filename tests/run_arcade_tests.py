@@ -22,7 +22,8 @@ ARCADE = os.path.join(HERE, "..", "Arcade")
 MOCK = os.path.join(HERE, "wow_mock.lua")
 
 FILES = ["Core.lua", "Games/Nonogram.lua", "Games/Twenty48.lua",
-         "Games/Minesweeper.lua", "Games/Snake.lua"]
+         "Games/Minesweeper.lua", "Games/Snake.lua",
+         "Games/LightsOut.lua", "Games/Memory.lua", "Games/Simon.lua"]
 
 _passed = 0
 _failed = 0
@@ -288,6 +289,117 @@ def test_nonogram(lua, ns):
     check("nonogram hint fills a solution cell", bool(st.p.sol[hr][hc]) and int(st.fill[hr][hc]) == 1)
 
 
+# ---------------------------------------------------------------- Lights Out
+def test_lightsout(lua, ns):
+    G = ns.logic["lightsout"]
+    # flip is its own inverse
+    s = G.new(5)
+    snap = [[bool(s.grid[r][c]) for c in range(1, 6)] for r in range(1, 6)]
+    G.flip(s, 3, 3); G.flip(s, 3, 3)
+    same = all(bool(s.grid[r + 1][c + 1]) == snap[r][c] for r in range(5) for c in range(5))
+    check("lightsout flip is an involution", same)
+    # generated boards are not already solved
+    unsolved = 0
+    for seed in range(40):
+        lua.execute(f"math.randomseed({seed})")
+        if not bool(G.isSolved(G.new(5))):
+            unsolved += 1
+    check("lightsout new boards are unsolved", unsolved == 40, f"{40 - unsolved} were pre-solved")
+    # press toggles + solve detection
+    s = G.new(5)
+    for r in range(1, 6):
+        for c in range(1, 6):
+            s.grid[r][c] = False
+    s.solved = False
+    G.press(s, 2, 2)
+    check("lightsout press lights cells & isn't solved", not bool(s.solved) and int(s.moves) == 1)
+    G.press(s, 2, 2)
+    check("lightsout pressing back solves", bool(s.solved))
+
+
+# ---------------------------------------------------------------- Memory
+def test_memory(lua, ns):
+    G = ns.logic["memory"]
+    lua.execute("math.randomseed(3)")
+    s = G.new(8)
+    check("memory has 16 cards", int(s.n) == 16)
+    counts = {}
+    for i in range(1, 17):
+        f = int(s.cards[i].face); counts[f] = counts.get(f, 0) + 1
+    check("memory every face appears exactly twice", all(v == 2 for v in counts.values()) and len(counts) == 8)
+
+    # find a matching pair and a mismatching pair
+    byface = {}
+    for i in range(1, 17):
+        byface.setdefault(int(s.cards[i].face), []).append(i)
+    a, b = byface[1]
+    check("memory matching pair -> match", G.flip(s, a) == "flip" and G.flip(s, b) == "match")
+    check("memory pairsFound incremented", int(s.pairsFound) == 1 and bool(s.cards[a].matched))
+    # mismatch
+    x = byface[2][0]; y = byface[3][0]
+    G.flip(s, x)
+    check("memory mismatch -> mismatch", G.flip(s, y) == "mismatch")
+    check("memory two cards shown after mismatch", len(list(s.up.values())) == 2)
+    G.resolve(s)
+    check("memory resolve hides mismatch", len(list(s.up.values())) == 0)
+
+    # full win
+    lua.execute("math.randomseed(9)")
+    s = G.new(8)
+    byface = {}
+    for i in range(1, 17):
+        byface.setdefault(int(s.cards[i].face), []).append(i)
+    for f, (i, j) in byface.items():
+        G.flip(s, i); G.flip(s, j)
+    check("memory win when all pairs found", bool(s.over) and int(s.pairsFound) == 8)
+
+
+# ---------------------------------------------------------------- Simon
+def test_simon(lua, ns):
+    G = ns.logic["simon"]
+    lua.execute("math.randomseed(1)")
+    s = G.new(); G.extend(s)
+    check("simon starts at round 1", int(G.round(s)) == 1)
+    # correct input completes the round
+    res = G.input(s, int(s.seq[1]))
+    check("simon correct single -> round", res == "round")
+    G.extend(s)
+    check("simon extend -> round 2", int(G.round(s)) == 2)
+    # correct then wrong
+    r1 = G.input(s, int(s.seq[1]))
+    wrong = 1 + (int(s.seq[2]) % 4) + 1
+    wrong = wrong if wrong != int(s.seq[2]) else (int(s.seq[2]) % 4) + 1
+    res2 = G.input(s, wrong)
+    check("simon wrong input -> fail", r1 == "ok" and res2 == "fail" and bool(s.over))
+
+
+# ---------------------------------------------------------------- Core features
+def test_core(lua, ns):
+    g = lua.globals()
+    # achievements idempotent
+    lua.execute("ArcadeDB.ach = {}")
+    check("achievement unlock returns true once", bool(ns.Unlock("first")) and not bool(ns.Unlock("first")))
+    check("achievement recorded", bool(g.ArcadeDB.ach["first"]))
+
+    # streak logic across days
+    base = 20000
+    lua.execute("ArcadeDB.stats = { plays = {}, total = 0 }")
+    g.MOCK_TIME = base * 86400
+    check("streak starts at 1", int(ns.RecordPlay("x")) == 1)
+    check("same day keeps streak", int(ns.RecordPlay("x")) == 1)
+    g.MOCK_TIME = (base + 1) * 86400
+    check("next day increments streak", int(ns.RecordPlay("x")) == 2)
+    g.MOCK_TIME = (base + 3) * 86400
+    check("gap resets streak", int(ns.RecordPlay("x")) == 1)
+    check("streak3 achievement respects real streak", not bool(g.ArcadeDB.ach["streak3"]))
+    # build a 3-streak
+    lua.execute("ArcadeDB.stats = { plays = {}, total = 0 }")
+    for k in range(3):
+        g.MOCK_TIME = (base + 10 + k) * 86400
+        ns.RecordPlay("x")
+    check("streak3 unlocks at 3-day streak", bool(g.ArcadeDB.ach["streak3"]))
+
+
 def main():
     lua, ns = boot()
     print(f"Loaded real Arcade addon ({len(FILES)} files) into embedded {lua.eval('_VERSION')}")
@@ -297,6 +409,10 @@ def main():
     test_minesweeper(lua, ns)
     test_snake(lua, ns)
     test_nonogram(lua, ns)
+    test_lightsout(lua, ns)
+    test_memory(lua, ns)
+    test_simon(lua, ns)
+    test_core(lua, ns)
     print("-" * 64)
     print(f"arcade integration: {_passed} passed, {_failed} failed")
     sys.exit(1 if _failed else 0)

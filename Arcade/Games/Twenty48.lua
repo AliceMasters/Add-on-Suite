@@ -150,6 +150,7 @@ local function doMove(dir)
     render()
     ns.SetScore(state.score)
     ns.SubmitBest("2048", state.score)
+    for r = 1, N do for c = 1, N do if state.grid[r][c] >= 512 then ns.Unlock("t512") end end end
     if state.over then
       overlayText:SetText("Game Over\n|cffffd200Score " .. state.score .. "|r")
       overlay:Show()
@@ -224,4 +225,4 @@ local function stop()
 end
 
 ns.Register({ id = "2048", name = "2048", desc = "Slide tiles, merge to 2048.",
-              start = start, stop = stop })
+              icon = "Interface\\Icons\\INV_Misc_Dice_02", start = start, stop = stop })

@@ -143,6 +143,7 @@ local function afterMove()
     if state.win then
       overlayText:SetText("|cff40ff40Cleared!|r")
       ns.SubmitBest("minesweeper", ns.Best("minesweeper") + 1)  -- best = total clears
+      ns.Unlock("sweep")
       ns.Sound(SOUNDKIT and SOUNDKIT.LEVELUP)
     else
       overlayText:SetText("|cffff4040Boom!|r")
@@ -213,4 +214,4 @@ local function stop()
 end
 
 ns.Register({ id = "minesweeper", name = "Minesweeper", desc = "Clear the field, flag the mines.",
-              start = start, stop = stop })
+              icon = "Interface\\Icons\\Spell_Fire_SelfDestruct", start = start, stop = stop })

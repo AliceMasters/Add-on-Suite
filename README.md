@@ -1,60 +1,80 @@
-# Add-on Suite
+<div align="center">
 
-World of Warcraft addons I'm working on — arcade games that live in a window
-inside the game, no alt-tabbing. Everything is logic-tested headlessly (see
-`tests/`, run in CI on every push).
+# ✦ Add-on Suite ✦
 
-## Bejeweled
+### Arcade games that live *inside* your World of Warcraft window — no alt-tabbing.
 
-Match-3, played in a little window inside WoW. I got tired of alt-tabbing
-out of the game during queues and flight paths, so I built the gem game I
-actually wanted right into the client.
+[![tests](https://github.com/CallMeAlicex/Add-on-Suite/actions/workflows/tests.yml/badge.svg)](https://github.com/CallMeAlicex/Add-on-Suite/actions/workflows/tests.yml)
+![WoW](https://img.shields.io/badge/WoW-Retail%20120100-6a3fb5)
+![Lua](https://img.shields.io/badge/Lua-5.1-24136b)
+![License](https://img.shields.io/badge/license-MIT-e9d5a0)
 
-Line up three or more gems of the same color by swapping two neighbors.
-Matches clear, everything above drops down, and if the new gems happen to
-line up too you get a cascade — which is where the points really come from.
-Match four gems and you get a Flame that blows up its neighbors when it goes.
-Match five and you get a Hypercube: drop it on any gem and every gem of that
-color leaves the board at once.
+*Every game's logic is proven headlessly — the real shipped `.lua` is loaded into an*
+*embedded Lua runtime and fuzzed on every push. Green badge = the cabinet still works.*
 
-It keeps your high score between sessions, points out a move if you sit there
-too long, and reshuffles itself when the board runs out of options.
+</div>
 
-### Getting it running
+---
 
-Copy the `Bejeweled` folder into:
+## 🎰 Azeroth Arcade
+
+One addon, a whole cabinet. A velvet **amethyst** home screen with game cards,
+a **daily streak**, **trophies/achievements**, per-game **best scores**, and a
+**settings** panel with four theme accents. Open with `/arcade` (or the dice on
+your minimap).
+
+| Game | | What it is |
+|---|---|---|
+| 🖼️ **Nonogram** | *the star* | Solve row/column clues to reveal a hidden picture. Lives (a wrong fill costs a heart), bold 5×5 gridlines, hint stars, drag-to-mark, and **27 hand-drawn colour puzzles** across Easy → Hard. |
+| 🎲 **2048** | | Slide with arrow keys / WASD; merge tiles up to 2048. |
+| 💣 **Minesweeper** | | Left-click reveals, right-click flags. First-click safety + flood-fill. |
+| 🐍 **Snake** | | Arrow keys / WASD; eat, grow, don't crash. |
+| 💡 **Lights Out** | | Flip a tile and its neighbours; turn the whole board off. |
+| 🃏 **Memory** | | Flip cards two at a time; find every matching pair. |
+| 🔮 **Simon** | | Watch the sequence, then repeat it as it grows. |
+
+### ✨ Arcade features
+
+- **Daily streak** — comes back day after day, counts your run.
+- **Trophies** — nine achievements to unlock, with a slide-in toast.
+- **Best scores** kept per game, shown right on each card.
+- **Themes** — Amethyst, Rose, Emerald, Sapphire, switchable live.
+- Custom velvet UI, custom fonts, a movable window, and a minimap button.
+
+## 💎 Bejeweled
+
+The original match-3, in its own addon. Swap gems, trigger cascades, build a
+**Flame** (match-4) or a **Hypercube** (match-5). `/bej` to play.
+
+---
+
+## 🧪 How it's tested
+
+A WoW addon can't run in CI, so the suite is verified in two layers (see `tests/`,
+run on every push):
+
+1. **Reference-model fuzz** — an independent reimplementation plays 60,000 moves,
+   asserting invariants after every one.
+2. **Real-Lua integration** — the *actual* shipped `.lua` is loaded into an embedded
+   Lua runtime behind a mock WoW API and driven for real: Bejeweled cascades, and
+   every Arcade game's logic (merge rules, flood-fill, collisions, nonogram
+   solve/lives/hint, streaks, achievements). **125+ checks, all green.**
+
+```bash
+pip install -r tests/requirements.txt
+python tests/run_arcade_tests.py     # the whole cabinet
+```
+
+## 🎮 Install
+
+Copy the `Arcade` (and/or `Bejeweled`) folder into:
 
 ```
 World of Warcraft\_retail_\Interface\AddOns\
 ```
 
-Enable it on the character screen (AddOns button), then type `/bej` in game.
-`/bejeweled` and `/gems` work too.
-
-Built for retail. Drag the title bar to move the window, click a gem and then
-a neighbor to swap — or just drag one onto the other.
-
-## Azeroth Arcade
-
-One addon, a whole cabinet of games. Open it with `/arcade` (or the dice on the
-minimap) and pick from the menu:
-
-- **Nonogram** — the star. Solve row/column clues to reveal a hidden picture,
-  with lives (a wrong fill costs a heart), bold 5×5 gridlines, a hint button,
-  and several hand-drawn puzzles across difficulties. Left-click fills,
-  right-click marks an X, drag to paint X's.
-- **2048** — slide tiles with the arrow keys or WASD; merge up to 2048.
-- **Minesweeper** — left-click reveals, right-click flags; classic first-click
-  safety and flood-fill.
-- **Snake** — arrow keys / WASD; eat, grow, don't crash.
-
-Each game keeps a best score (or puzzles-solved), shared across the cabinet.
-
-### Getting it running
-
-Copy the `Arcade` folder into the same `AddOns` directory, enable it on the
-character screen, and type `/arcade`.
+Enable it on the character screen, then type `/arcade`.
 
 ## License
 
-MIT. Do whatever you like with it.
+MIT — do whatever you like with it.
