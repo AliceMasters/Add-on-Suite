@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 11601
 ## Title: Azeroth Arcade
 ## Notes: A jewel-box of arcade mini-games in one window. Type /arcade to play.
 ## Author: Alice
