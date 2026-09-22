@@ -51,7 +51,7 @@ local function renderHistory()
     local g = state.guesses[i]
     for j = 1, SLOTS do
       if g then local col = PAL[g.pegs[j]]; row.pegs[j]:SetColorTexture(col[1], col[2], col[3], 1)
-      else row.pegs[j]:SetColorTexture(0.14, 0.10, 0.19, 1) end
+      else row.pegs[j]:SetColorTexture(ns.C.cell[1], ns.C.cell[2], ns.C.cell[3], 1) end
     end
     row.fb:SetText(g and ("|cff20ff60" .. g.black .. "|r|cffffffff/" .. g.white .. "|r") or "")
   end
@@ -60,7 +60,7 @@ end
 local function renderCurrent()
   for j = 1, SLOTS do
     if current[j] then local col = PAL[current[j]]; guessSlots[j]:SetColorTexture(col[1], col[2], col[3], 1)
-    else guessSlots[j]:SetColorTexture(0.14, 0.10, 0.19, 1) end
+    else guessSlots[j]:SetColorTexture(ns.C.cell[1], ns.C.cell[2], ns.C.cell[3], 1) end
   end
 end
 

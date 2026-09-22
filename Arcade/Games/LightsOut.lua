@@ -87,6 +87,8 @@ local function build(content)
   local board = CreateFrame("Frame", nil, frame)
   local dim = N * SIZE + (N + 1) * GAP
   board:SetSize(dim, dim); board:SetPoint("TOP", 0, -20)
+  local bbg = board:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+  bbg:SetColorTexture(ns.C.line[1], ns.C.line[2], ns.C.line[3], 0.4)
 
   cells = {}
   for r = 1, N do

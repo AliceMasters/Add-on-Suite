@@ -110,6 +110,8 @@ local function build(content)
   local board = CreateFrame("Frame", nil, frame)
   board:SetSize(COLS * SIZE + (COLS + 1) * GAP, ROWS * SIZE + (ROWS + 1) * GAP)
   board:SetPoint("TOP", 0, -8)
+  local bbg = board:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+  bbg:SetColorTexture(ns.C.line[1], ns.C.line[2], ns.C.line[3], 0.4)
 
   cards = {}
   for i = 1, COLS * ROWS do

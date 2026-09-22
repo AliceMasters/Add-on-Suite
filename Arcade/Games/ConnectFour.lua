@@ -78,7 +78,7 @@ local frame, cells, state, overlay, overlayText, busy
 local function render()
   for r = 1, ROWS do for c = 1, COLS do
     local v = state.grid[r][c]
-    if v == 0 then ns.Grad(cells[r][c].disc, "VERTICAL", { 0.08, 0.05, 0.12 }, { 0.05, 0.03, 0.08 })
+    if v == 0 then ns.Grad(cells[r][c].disc, "VERTICAL", ns.C.cell, ns.C.cellLo)
     else local d = DISC[v + 1]; ns.Grad(cells[r][c].disc, "VERTICAL", { d[1] * 0.75, d[2] * 0.75, d[3] * 0.75 }, d) end
   end end
 end

@@ -99,6 +99,8 @@ local function build(content)
   frame = CreateFrame("Frame", nil, content); frame:SetAllPoints()
   local board = CreateFrame("Frame", nil, frame)
   board:SetSize(3 * SIZE + 4 * GAP, 3 * SIZE + 4 * GAP); board:SetPoint("TOP", 0, -14)
+  local bbg = board:CreateTexture(nil, "BACKGROUND"); bbg:SetAllPoints()
+  bbg:SetColorTexture(ns.C.line[1], ns.C.line[2], ns.C.line[3], 0.55)   -- gaps read as bright grid lines
   cells = {}
   for i = 1, 9 do
     local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
@@ -106,7 +108,7 @@ local function build(content)
     b:SetSize(SIZE, SIZE)
     b:SetPoint("TOPLEFT", GAP + col * (SIZE + GAP), -(GAP + row * (SIZE + GAP)))
     local bgt = b:CreateTexture(nil, "BACKGROUND"); bgt:SetAllPoints()
-    ns.Grad(bgt, "VERTICAL", ns.C.panel, ns.C.panelLo)
+    ns.Grad(bgt, "VERTICAL", ns.C.cell, ns.C.cellLo)
     local hl = b:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.08)
     b.fs = b:CreateFontString(nil, "OVERLAY"); b.fs:SetFont(ns.FONT_FANCY, 64); b.fs:SetPoint("CENTER")
     b.i = i

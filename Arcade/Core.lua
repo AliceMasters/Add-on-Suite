@@ -28,11 +28,13 @@ local ACCENTS = {
 local ORDER = { "amethyst", "rose", "emerald", "sapphire" }
 
 ns.C = {
-  bg1   = { 0.10, 0.07, 0.14 }, bg2 = { 0.05, 0.03, 0.09 },
-  panel = { 0.15, 0.10, 0.20 }, panelLo = { 0.10, 0.06, 0.14 },
-  edge  = { 0.40, 0.28, 0.55 }, edgeLo = { 0.24, 0.16, 0.34 },
-  text  = { 0.95, 0.93, 0.97 }, sub = { 0.74, 0.68, 0.82 },
-  gold  = { 0.91, 0.83, 0.63 },
+  bg1   = { 0.12, 0.09, 0.17 }, bg2 = { 0.07, 0.05, 0.11 },
+  panel = { 0.21, 0.17, 0.30 }, panelLo = { 0.15, 0.12, 0.22 },
+  cell  = { 0.27, 0.23, 0.37 }, cellLo = { 0.19, 0.16, 0.28 },
+  line  = { 0.48, 0.40, 0.64 },
+  edge  = { 0.50, 0.38, 0.66 }, edgeLo = { 0.32, 0.24, 0.44 },
+  text  = { 0.96, 0.94, 0.98 }, sub = { 0.78, 0.72, 0.86 },
+  gold  = { 0.93, 0.85, 0.66 },
   accent = ACCENTS.amethyst.base, accentLite = ACCENTS.amethyst.lite,
 }
 
@@ -273,23 +275,25 @@ local function makeCard(parent, def, w, h)
   addBorder(card, ns.C.edge)
   local glow = card:CreateTexture(nil, "HIGHLIGHT"); glow:SetAllPoints()
 
-  local iconBorder = card:CreateTexture(nil, "ARTWORK")
-  iconBorder:SetSize(46, 46); iconBorder:SetPoint("TOPLEFT", 12, -12)
-  local icon = card:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(40, 40); icon:SetPoint("CENTER", iconBorder, "CENTER")
+  local holder = CreateFrame("Frame", nil, card)
+  holder:SetSize(48, 48); holder:SetPoint("TOPLEFT", 12, -12)
+  local hbg = holder:CreateTexture(nil, "ARTWORK"); hbg:SetAllPoints()
+  ns.Grad(hbg, "VERTICAL", ns.C.cell, ns.C.cellLo)
+  addBorder(holder, ns.C.edgeLo)
+  local icon = holder:CreateTexture(nil, "OVERLAY")     -- OVERLAY so a valid icon draws on top
+  icon:SetPoint("TOPLEFT", 3, -3); icon:SetPoint("BOTTOMRIGHT", -3, 3)
   icon:SetTexture(def.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
   icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-  local nm = ns.Header(card, def.name, 15); nm:SetPoint("TOPLEFT", 66, -16)
-  local desc = ns.Label(card, def.desc or "", 10, ns.C.sub); desc:SetPoint("TOPLEFT", 66, -38)
+  local nm = ns.Header(card, def.name, 15); nm:SetPoint("TOPLEFT", 70, -16)
+  local desc = ns.Label(card, def.desc or "", 10, ns.C.sub); desc:SetPoint("TOPLEFT", 70, -38)
   desc:SetPoint("RIGHT", -10, 0); desc:SetJustifyH("LEFT")
   local best = ns.Label(card, "Best  " .. ns.Best(def.id), 11, ns.C.gold)
-  best:SetPoint("BOTTOMLEFT", 66, 10)
+  best:SetPoint("BOTTOMLEFT", 70, 10)
   card._best = best
 
   card._reskin = function()
     glow:SetColorTexture(ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.16)
-    iconBorder:SetColorTexture(ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.85)
   end
   card._reskin()
   card:SetScript("OnClick", function() ns.PlayGame(def.id) end)
@@ -412,7 +416,8 @@ local function buildStats()
 end
 
 local function showStats()
-  homeFrame:Hide(); contentFrame:Hide()
+  if current and current.stop then pcall(current.stop) end
+  homeFrame:Hide(); contentFrame:Hide(); settingsPanel:Hide()
   for i, a in ipairs(ns.ACH) do
     local got = ArcadeDB.ach and ArcadeDB.ach[a.id]
     statsPanel._lines[i]:SetText((got and "|cffe9d5a0" or "|cff555060")
@@ -453,6 +458,7 @@ local function buildUI()
   local close = ns.NewButton(f, "X", 26, 22, function() f:Hide() end)
   close:SetPoint("TOPRIGHT", -4, -4); close:SetFrameLevel(topLvl)
   local gear = ns.NewButton(f, "Settings", 74, 22, function()
+    if current and current.stop then pcall(current.stop) end
     homeFrame:Hide(); contentFrame:Hide(); if statsPanel then statsPanel:Hide() end
     settingsPanel:Show()
   end)
