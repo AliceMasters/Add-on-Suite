@@ -120,13 +120,13 @@ local function roundFill(frame, col)
   base:SetPoint("TOPLEFT", 3, -3); base:SetPoint("BOTTOMRIGHT", -3, 3)
   base:SetColorTexture(col[1], col[2], col[3], col[4] or 1)
   local nine = round9(frame, FILL, "BACKGROUND")
-  nine:SetColor(nil, col[1], col[2], col[3], col[4] or 1)
-  return { set = function(c) base:SetColorTexture(c[1], c[2], c[3], c[4] or 1); nine:SetColor(nil, c[1], c[2], c[3], c[4] or 1) end }
+  nine:SetColor(col[1], col[2], col[3], col[4] or 1)
+  return { set = function(c) base:SetColorTexture(c[1], c[2], c[3], c[4] or 1); nine:SetColor(c[1], c[2], c[3], c[4] or 1) end }
 end
 
 local function roundBorder(frame, col)
   local nine = round9(frame, LINE, "BORDER")
-  nine:SetColor(nil, col[1], col[2], col[3], col[4] or 1)
+  nine:SetColor(col[1], col[2], col[3], col[4] or 1)
   roundBorders[#roundBorders + 1] = nine
   return nine
 end
@@ -179,7 +179,7 @@ end
 local function ApplyAccent()
   local bc = borderColor()
   for _, f in ipairs(accentFills) do f.set(btnFill()) end
-  for _, bd in ipairs(roundBorders) do bd:SetColor(nil, bc[1], bc[2], bc[3]) end
+  for _, bd in ipairs(roundBorders) do bd:SetColor(bc[1], bc[2], bc[3]) end
   for _, g in ipairs(glows) do g:SetColorTexture(ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.20) end
   if homeCards then for _, card in ipairs(homeCards) do if card._reskin then card._reskin() end end end
 end

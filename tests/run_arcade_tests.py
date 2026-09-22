@@ -698,6 +698,33 @@ def test_sudoku(lua, ns):
     check("sudoku save/resume round-trips", len(blob) == 81 and same)
 
 
+# ---------------------------------------------------------------- UI smoke test
+def test_ui_smoke(lua, ns):
+    # Actually build the whole UI and open every game. Any runtime error in view
+    # code (nil calls, bad SetVertexColor args, missing globals) fails here — this
+    # is the layer that would have caught the rounded-corner SetColor bug.
+    try:
+        ns.Toggle()   # build window + home + settings + trophies + toast
+        check("ui: main window builds", True)
+    except Exception as e:
+        check("ui: main window builds", False, str(e)[:200])
+        return
+    n = int(lua.eval("function(t) return #t end")(ns.games))
+    ids = [str(ns.games[i].id) for i in range(1, n + 1)]
+    for gid in ids:
+        try:
+            ns.PlayGame(gid)     # build + start each game's view
+            lua.globals().PumpTimers()   # let any start-up timers fire
+            check(f"ui: open {gid}", True)
+        except Exception as e:
+            check(f"ui: open {gid}", False, str(e)[:180])
+    try:
+        ns.ShowMenu()
+        check("ui: back to menu", True)
+    except Exception as e:
+        check("ui: back to menu", False, str(e)[:180])
+
+
 def main():
     lua, ns = boot()
     print(f"Loaded real Arcade addon ({len(FILES)} files) into embedded {lua.eval('_VERSION')}")
@@ -721,6 +748,7 @@ def main():
     test_pegs(lua, ns)
     test_sudoku(lua, ns)
     test_core(lua, ns)
+    test_ui_smoke(lua, ns)
     print("-" * 64)
     print(f"arcade integration: {_passed} passed, {_failed} failed")
     sys.exit(1 if _failed else 0)

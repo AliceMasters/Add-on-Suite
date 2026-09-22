@@ -22,8 +22,15 @@ end
 local TexMethods, FrameMethods = {}, {}
 
 function TexMethods.SetTexture(self, p) self._tex = p end
-function TexMethods.SetVertexColor(self, r, g, b) self._vc = {r, g, b} end
-function TexMethods.SetColorTexture(self, r, g, b, a) self._fill = {r, g, b, a} end
+-- validate colour args like the real client (catches nil/misaligned args)
+function TexMethods.SetVertexColor(self, r, g, b, a)
+  assert(type(r) == "number" and type(g) == "number" and type(b) == "number", "SetVertexColor needs numbers")
+  self._vc = {r, g, b}
+end
+function TexMethods.SetColorTexture(self, r, g, b, a)
+  assert(type(r) == "number" and type(g) == "number" and type(b) == "number", "SetColorTexture needs numbers")
+  self._fill = {r, g, b, a}
+end
 function TexMethods.Show(self) self._shown = true end
 function TexMethods.Hide(self) self._shown = false end
 
@@ -40,6 +47,8 @@ function FrameMethods.GetEffectiveScale() return 1 end
 function FrameMethods.GetLeft() return 0 end
 function FrameMethods.GetTop() return 0 end
 function FrameMethods.GetCenter() return 0, 0 end
+function FrameMethods.GetFrameLevel() return 1 end
+function FrameMethods.GetAlpha() return 1 end
 function FrameMethods.RegisterEvent() end
 function FrameMethods.UnregisterEvent() end
 
