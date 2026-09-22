@@ -18,3 +18,8 @@ Games\ConnectFour.lua
 Games\FloodIt.lua
 Games\Slide.lua
 Games\Mastermind.lua
+Games\Nim.lua
+Games\Hangman.lua
+Games\Reversi.lua
+Games\PegSolitaire.lua
+Games\Sudoku.lua

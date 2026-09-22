@@ -25,7 +25,9 @@ FILES = ["Core.lua", "Games/Nonogram.lua", "Games/Twenty48.lua",
          "Games/Minesweeper.lua", "Games/Snake.lua",
          "Games/LightsOut.lua", "Games/Memory.lua", "Games/Simon.lua",
          "Games/TicTacToe.lua", "Games/ConnectFour.lua", "Games/FloodIt.lua",
-         "Games/Slide.lua", "Games/Mastermind.lua"]
+         "Games/Slide.lua", "Games/Mastermind.lua",
+         "Games/Nim.lua", "Games/Hangman.lua", "Games/Reversi.lua", "Games/PegSolitaire.lua",
+         "Games/Sudoku.lua"]
 
 _passed = 0
 _failed = 0
@@ -521,6 +523,169 @@ def test_mastermind(lua, ns):
     check("mm runs out of guesses", bool(s.over) and not bool(s.won))
 
 
+# ---------------------------------------------------------------- Nim
+def test_nim(lua, ns):
+    G = ns.logic["nim"]
+    def nimsum(h):
+        x = 0
+        for v in h: x ^= v
+        return x
+    def ai(heaps):
+        s = lua.eval("function(a,b,c) return {heaps={a,b,c}} end")(*heaps)
+        h, cnt = G.aiMove(s)
+        return int(h), int(cnt)
+
+    # AI zeroes the nim-sum from a winning position
+    h, cnt = ai([3, 5, 7])
+    nh = [3, 5, 7]; nh[h - 1] -= cnt
+    check("nim AI moves to nim-sum 0", nimsum(nh) == 0)
+
+    # taking the last piece wins
+    s = lua.eval("function() return {heaps={0,0,1}, turn=1, over=false, winner=0} end")()
+    G.take(s, 3, 1)
+    check("nim last piece wins", bool(s.over) and int(s.winner) == 1)
+    # can't overdraw
+    s = G.new()
+    check("nim rejects overdraw", not bool(G.take(s, 1, 99)))
+
+    # full search: from a winning position AI never loses vs adversarial opponent
+    import sys as _s; _s.setrecursionlimit(100000)
+    def search(heaps, turn):
+        if all(v == 0 for v in heaps):
+            return 1 if turn == 2 else 2      # previous mover won
+        if turn == 2:
+            hh, cc = ai(heaps); nn = list(heaps); nn[hh - 1] -= cc
+            return search(nn, 1)
+        else:
+            for hi in range(3):
+                for take in range(1, heaps[hi] + 1):
+                    nn = list(heaps); nn[hi] -= take
+                    if search(nn, 2) == 1: return 1
+            return 2
+    check("nim AI wins from a winning position (full search)", search([3, 5, 7], 2) == 2)
+
+
+# ---------------------------------------------------------------- Hangman
+def test_hangman(lua, ns):
+    G = ns.logic["hangman"]
+    s = G.new()
+    s.word = "CAT"; s.guessed = lua.eval("{}"); s.wrong = 0; s.over = False; s.won = False
+    check("hangman hit reveals", G.guess(s, "C") == "hit" and "C" in G.masked(s))
+    check("hangman miss counts", G.guess(s, "Z") == "miss" and int(s.wrong) == 1)
+    G.guess(s, "A")
+    check("hangman completing word wins", G.guess(s, "T") == "win" and bool(s.won))
+    # lose after max wrong
+    s = G.new()
+    s.word = "CAT"; s.guessed = lua.eval("{}"); s.wrong = 0; s.over = False; s.won = False
+    res = None
+    for ch in "BDEFGH":
+        res = G.guess(s, ch)
+    check("hangman loses after 6 wrong", res == "lose" and bool(s.over) and not bool(s.won))
+
+
+# ---------------------------------------------------------------- Reversi
+def test_reversi(lua, ns):
+    G = ns.logic["reversi"]
+    s = G.new()
+    a, b = G.count(s)
+    check("reversi starts 2-2", int(a) == 2 and int(b) == 2)
+    lm = G.legalMoves(s, 1)
+    check("reversi black has 4 opening moves", len(list(lm.values())) == 4)
+    m = lm[1]
+    fl = G.flips(s, int(m[1]), int(m[2]), 1)
+    check("reversi a legal move flips >=1", len(list(fl.values())) >= 1)
+    G.play(s, int(m[1]), int(m[2]))
+    a2, b2 = G.count(s)
+    check("reversi play increases disc count", int(a2) + int(b2) == 5)
+    check("reversi AI returns a legal move", G.aiMove(s) is not None)
+
+
+# ---------------------------------------------------------------- Peg Solitaire
+def test_pegs(lua, ns):
+    G = ns.logic["pegs"]
+    s = G.new()
+    check("pegs starts with 32", int(G.pegs(s)) == 32)
+    check("pegs center empty", int(s.grid[4][4]) == 0)
+    check("pegs corner invalid", not bool(G.valid(1, 1)) and bool(G.valid(4, 1)))
+    check("pegs a valid jump exists", bool(G.canMove(s, 4, 2, 4, 4)))
+    G.move(s, 4, 2, 4, 4)
+    check("pegs jump removes two, adds one", int(G.pegs(s)) == 31 and int(s.grid[4][4]) == 1
+          and int(s.grid[4][3]) == 0 and int(s.grid[4][2]) == 0)
+    check("pegs rejects non-jump", not bool(G.move(s, 4, 4, 4, 5)))
+    check("pegs has moves at start", bool(G.hasMoves(G.new())))
+
+
+# ---------------------------------------------------------------- Sudoku
+def test_sudoku(lua, ns):
+    G = ns.logic["sudoku"]
+    n = int(lua.eval("function(t) return #t end")(G.puzzles))
+    check("sudoku has puzzles", n >= 4)
+
+    def box_ok(sol_grid):
+        def ok(cells): return sorted(cells) == list(range(1, 10))
+        for r in range(9):
+            if not ok(sol_grid[r]): return False
+        for c in range(9):
+            if not ok([sol_grid[r][c] for r in range(9)]): return False
+        for br in range(0, 9, 3):
+            for bc in range(0, 9, 3):
+                if not ok([sol_grid[br + i][bc + j] for i in range(3) for j in range(3)]): return False
+        return True
+
+    for idx in range(1, n + 1):
+        p = G.puzzles[idx]
+        sol = str(p.solution)
+        grid = [[int(sol[r * 9 + c]) for c in range(9)] for r in range(9)]
+        check(f"sudoku '{p.name}' solution is valid", box_ok(grid))
+        given = str(p.given)
+        check(f"sudoku '{p.name}' givens agree with solution",
+              all(given[i] == "0" or given[i] == sol[i] for i in range(81)))
+
+    # new(): fixed flags match givens
+    s = G.new(1)
+    given = str(G.puzzles[1].given)
+    ok = True
+    for r in range(1, 10):
+        for c in range(1, 10):
+            g = int(given[(r - 1) * 9 + (c - 1)])
+            if bool(s.fixed[r][c]) != (g != 0): ok = False
+    check("sudoku fixed flags match givens", ok)
+
+    # can't overwrite a given; can fill an empty
+    fr = fc = None
+    for r in range(1, 10):
+        for c in range(1, 10):
+            if not s.fixed[r][c]: fr, fc = r, c; break
+        if fr: break
+    ffr = ffc = None
+    for r in range(1, 10):
+        for c in range(1, 10):
+            if s.fixed[r][c]: ffr, ffc = r, c; break
+        if ffr: break
+    check("sudoku rejects editing a given", not bool(G.set(s, ffr, ffc, 5)))
+    check("sudoku allows editing a blank", bool(G.set(s, fr, fc, 1)))
+
+    # conflict detection: duplicate in a row
+    s = G.new(1)
+    # find an empty cell and set it to a value already present in its row
+    for r in range(1, 10):
+        rowvals = [int(s.grid[r][c]) for c in range(1, 10) if s.grid[r][c] != 0]
+        empty = [c for c in range(1, 10) if s.grid[r][c] == 0]
+        if rowvals and empty:
+            G.set(s, r, empty[0], rowvals[0])
+            check("sudoku detects a row conflict", bool(G.conflict(s, r, empty[0])))
+            break
+
+    # solving from the solution wins
+    s = G.new(2)
+    sol = str(G.puzzles[2].solution)
+    for r in range(1, 10):
+        for c in range(1, 10):
+            if not s.fixed[r][c]:
+                G.set(s, r, c, int(sol[(r - 1) * 9 + (c - 1)]))
+    check("sudoku is solved when filled correctly", bool(s.won) and bool(G.isSolved(s)))
+
+
 def main():
     lua, ns = boot()
     print(f"Loaded real Arcade addon ({len(FILES)} files) into embedded {lua.eval('_VERSION')}")
@@ -538,6 +703,11 @@ def main():
     test_floodit(lua, ns)
     test_slide(lua, ns)
     test_mastermind(lua, ns)
+    test_nim(lua, ns)
+    test_hangman(lua, ns)
+    test_reversi(lua, ns)
+    test_pegs(lua, ns)
+    test_sudoku(lua, ns)
     test_core(lua, ns)
     print("-" * 64)
     print(f"arcade integration: {_passed} passed, {_failed} failed")

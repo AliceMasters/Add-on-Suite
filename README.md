@@ -18,7 +18,7 @@
 
 ## 🎰 Azeroth Arcade
 
-One addon, a whole cabinet — **12 games** and **100 nonogram puzzles**. A velvet
+One addon, a whole cabinet — **17 games** and **100 nonogram puzzles**. A velvet
 **amethyst** home screen with game cards, category tabs (Puzzle / Arcade / Vs AI),
 a **daily streak**, **trophies/achievements**, per-game **best scores**, and a
 **settings** panel with four theme accents. Open with `/arcade` (or the dice on
@@ -38,6 +38,11 @@ your minimap).
 | ❄️ **Flood It** | | Flood the board to one colour before your moves run out. |
 | 🔢 **Sliding Puzzle** | | Slide the 15 tiles back into order. |
 | 🎯 **Mastermind** | | Deduce the hidden four-colour code in ten guesses. |
+| 🪙 **Nim** | *vs AI* | Take the last piece; the AI plays perfect nim-sum strategy. |
+| ⚫ **Reversi** | *vs AI* | Flank to flip; outscore the AI on an 8×8 board. |
+| 🔤 **Hangman** | | Guess the hidden word before you run out of tries. |
+| 🟣 **Peg Solitaire** | | Jump pegs over pegs; finish with just one. |
+| 🔢 **Sudoku** | | Five hand-picked puzzles, Easy → Fiendish, solution-verified. |
 
 ### ✨ Arcade features
 
@@ -65,7 +70,9 @@ run on every push):
    Lua runtime behind a mock WoW API and driven for real: Bejeweled cascades, and
    every Arcade game's logic (merge rules, flood-fill, collisions, nonogram
    solve/lives/hint across all 100 puzzles, streaks, achievements, and a full
-   game-tree proof that the Tic-Tac-Toe AI never loses). **365+ checks, all green.**
+   game-tree proof that the Tic-Tac-Toe AI never loses, a full-search proof that
+   the Nim AI wins from any winning position, and solution-verified Sudoku).
+   **400+ checks, all green.**
 
 ```bash
 pip install -r tests/requirements.txt
