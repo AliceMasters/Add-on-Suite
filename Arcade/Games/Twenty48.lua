@@ -224,5 +224,5 @@ local function stop()
   if frame then frame:EnableKeyboard(false); frame:Hide() end
 end
 
-ns.Register({ id = "2048", name = "2048", desc = "Slide tiles, merge to 2048.",
+ns.Register({ category = "Arcade", id = "2048", name = "2048", desc = "Slide tiles, merge to 2048.",
               icon = "Interface\\Icons\\INV_Misc_Dice_02", start = start, stop = stop })

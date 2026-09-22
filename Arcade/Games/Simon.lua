@@ -138,5 +138,5 @@ local function stop()
   if frame then frame:Hide() end
 end
 
-ns.Register({ id = "simon", name = "Simon", desc = "Repeat the growing sequence.",
+ns.Register({ category = "Arcade", id = "simon", name = "Simon", desc = "Repeat the growing sequence.",
               icon = "Interface\\Icons\\Spell_Holy_MagicalSentry", start = start, stop = stop })

@@ -2,7 +2,7 @@
 ## Title: Azeroth Arcade
 ## Notes: A jewel-box of arcade mini-games in one window. Type /arcade to play.
 ## Author: Alice
-## Version: 2.0
+## Version: 3.0
 ## SavedVariables: ArcadeDB
 
 Core.lua
@@ -13,3 +13,8 @@ Games\Snake.lua
 Games\LightsOut.lua
 Games\Memory.lua
 Games\Simon.lua
+Games\TicTacToe.lua
+Games\ConnectFour.lua
+Games\FloodIt.lua
+Games\Slide.lua
+Games\Mastermind.lua

@@ -142,5 +142,5 @@ end
 local function start(content) if not frame then build(content) end frame:Show(); newGame() end
 local function stop() if frame then frame:Hide() end end
 
-ns.Register({ id = "memory", name = "Memory", desc = "Match every pair.",
+ns.Register({ category = "Arcade", id = "memory", name = "Memory", desc = "Match every pair.",
               icon = "Interface\\Icons\\INV_Misc_Gem_Variety_01", start = start, stop = stop })

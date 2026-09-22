@@ -302,9 +302,8 @@ local function buildHome()
   homeFrame:SetSize(ns.CONTENT_W, ns.CONTENT_H)
 
   -- stat pills
-  local pillY = -2
   local function pill(x, w)
-    local p = ns.Panel(homeFrame); p:SetSize(w, 22); p:SetPoint("TOPLEFT", x, pillY)
+    local p = ns.Panel(homeFrame); p:SetSize(w, 22); p:SetPoint("TOPLEFT", x, -2)
     local fs = ns.Label(p, "", 11, ns.C.gold); fs:SetPoint("CENTER")
     return fs
   end
@@ -313,27 +312,47 @@ local function buildHome()
   pillTrophy = pill(280, 156)
 
   -- scrolling card grid
-  local vpY = -32
-  local vpH = ns.CONTENT_H - 34
+  local vpH = ns.CONTENT_H - 56
   local vp = CreateFrame("Frame", nil, homeFrame)
-  vp:SetPoint("TOPLEFT", 0, vpY); vp:SetSize(ns.CONTENT_W, vpH)
+  vp:SetPoint("TOPLEFT", 0, -54); vp:SetSize(ns.CONTENT_W, vpH)
   vp:SetClipsChildren(true); vp:EnableMouseWheel(true)
   local list = CreateFrame("Frame", nil, vp); list:SetPoint("TOPLEFT", 0, 0)
 
   local cw, ch, gap = ns.CONTENT_W, 92, 8
   for i, def in ipairs(ns.games) do
     local card = makeCard(list, def, cw, ch)
-    card:SetPoint("TOPLEFT", 0, -(i - 1) * (ch + gap))
+    card._cat = def.category or "Other"
     homeCards[i] = card
   end
-  local listH = #ns.games * (ch + gap)
-  list:SetSize(cw, listH)
-  local maxScroll = math.max(0, listH - vpH)
-  local scroll = 0
+
+  local scroll, maxScroll = 0, 0
+  local function relayout(filter)
+    local shown = 0
+    for _, card in ipairs(homeCards) do
+      if (not filter) or card._cat == filter then
+        card:Show(); card:SetPoint("TOPLEFT", 0, -shown * (ch + gap)); shown = shown + 1
+      else
+        card:Hide()
+      end
+    end
+    list:SetSize(cw, math.max(1, shown * (ch + gap)))
+    maxScroll = math.max(0, shown * (ch + gap) - vpH)
+    scroll = 0; list:SetPoint("TOPLEFT", vp, "TOPLEFT", 0, 0)
+  end
   vp:SetScript("OnMouseWheel", function(_, d)
     scroll = math.max(0, math.min(maxScroll, scroll - d * 46))
     list:SetPoint("TOPLEFT", vp, "TOPLEFT", 0, scroll)
   end)
+
+  -- category tabs
+  local cats = { { "All", nil }, { "Puzzle", "Puzzle" }, { "Arcade", "Arcade" }, { "Vs AI", "Vs AI" } }
+  local tw = (ns.CONTENT_W - 3 * 4) / 4
+  for i, cat in ipairs(cats) do
+    local b = ns.NewButton(homeFrame, cat[1], tw, 20, function() relayout(cat[2]) end)
+    b:SetPoint("TOPLEFT", (i - 1) * (tw + 4), -28)
+  end
+
+  relayout(nil)
 end
 
 ------------------------------------------------------------------------

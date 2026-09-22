@@ -120,5 +120,5 @@ end
 local function start(content) if not frame then build(content) end frame:Show(); newGame() end
 local function stop() if frame then frame:Hide() end end
 
-ns.Register({ id = "lightsout", name = "Lights Out", desc = "Turn every tile off.",
+ns.Register({ category = "Puzzle", id = "lightsout", name = "Lights Out", desc = "Turn every tile off.",
               icon = "Interface\\Icons\\Spell_Nature_Lightning", start = start, stop = stop })

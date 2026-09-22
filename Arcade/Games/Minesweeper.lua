@@ -213,5 +213,5 @@ local function stop()
   if frame then frame:Hide() end
 end
 
-ns.Register({ id = "minesweeper", name = "Minesweeper", desc = "Clear the field, flag the mines.",
+ns.Register({ category = "Puzzle", id = "minesweeper", name = "Minesweeper", desc = "Clear the field, flag the mines.",
               icon = "Interface\\Icons\\Spell_Fire_SelfDestruct", start = start, stop = stop })

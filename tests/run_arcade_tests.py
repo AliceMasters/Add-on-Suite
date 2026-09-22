@@ -23,7 +23,9 @@ MOCK = os.path.join(HERE, "wow_mock.lua")
 
 FILES = ["Core.lua", "Games/Nonogram.lua", "Games/Twenty48.lua",
          "Games/Minesweeper.lua", "Games/Snake.lua",
-         "Games/LightsOut.lua", "Games/Memory.lua", "Games/Simon.lua"]
+         "Games/LightsOut.lua", "Games/Memory.lua", "Games/Simon.lua",
+         "Games/TicTacToe.lua", "Games/ConnectFour.lua", "Games/FloodIt.lua",
+         "Games/Slide.lua", "Games/Mastermind.lua"]
 
 _passed = 0
 _failed = 0
@@ -400,6 +402,125 @@ def test_core(lua, ns):
     check("streak3 unlocks at 3-day streak", bool(g.ArcadeDB.ach["streak3"]))
 
 
+# ---------------------------------------------------------------- Tic-Tac-Toe
+def test_tictactoe(lua, ns):
+    G = ns.logic["tictactoe"]
+    mkb = lua.eval("function(...) return {...} end")
+    def winner(b): return int(G.winnerOf(mkb(*b)))
+    def ai(b):
+        _, m = G.minimax(mkb(*b), 2)
+        return int(m) if m is not None else None
+
+    # AI takes an immediate win
+    b = [2, 2, 0,  0, 1, 0,  1, 0, 0]
+    check("ttt AI takes the winning move", ai(b) == 3)
+    # AI blocks an immediate threat
+    b = [1, 1, 0,  0, 2, 0,  0, 0, 0]
+    check("ttt AI blocks the opponent", ai(b) == 3)
+
+    # exhaustive: opponent (X=1) plays every line, AI (O=2) plays minimax -> AI never loses
+    import sys as _sys
+    _sys.setrecursionlimit(10000)
+    def search(b, turn):
+        w = winner(b)
+        if w == 1: return False        # AI lost -> fail
+        if w != 0: return True         # AI win or draw
+        if turn == 1:
+            for i in range(9):
+                if b[i] == 0:
+                    nb = b[:]; nb[i] = 1
+                    if not search(nb, 2): return False
+            return True
+        else:
+            m = ai(b); nb = b[:]; nb[m - 1] = 2
+            return search(nb, 1)
+    check("ttt minimax NEVER loses (full game-tree search)", search([0] * 9, 1))
+
+
+# ---------------------------------------------------------------- Connect Four
+def test_connect4(lua, ns):
+    G = ns.logic["connect4"]
+    # AI takes a win: three of AI's discs on the bottom row, open 4th
+    s = G.new()
+    for c in (1, 2, 3): s.grid[6][c] = 2
+    s.turn = 2
+    check("c4 AI takes the win", int(G.aiMove(s)) == 4)
+    # AI blocks opponent's three-in-a-row
+    s = G.new()
+    for c in (2, 3, 4): s.grid[6][c] = 1
+    s.turn = 2
+    check("c4 AI blocks the threat", int(G.aiMove(s)) in (1, 5))
+    # drop lands at the bottom and stacks
+    s = G.new()
+    G.drop(s, 4)
+    check("c4 disc lands on the floor", int(s.grid[6][4]) != 0 and int(s.grid[5][4]) == 0)
+    # vertical win detected
+    s = G.new()
+    for r in (6, 5, 4, 3): s.grid[r][1] = 1
+    check("c4 detects a vertical four", int(G.winnerAt(s.grid)) == 1)
+
+
+# ---------------------------------------------------------------- Flood It
+def test_floodit(lua, ns):
+    G = ns.logic["floodit"]
+    lua.execute("math.randomseed(4)")
+    s = G.new(12, 6, 25)
+    check("floodit region contains origin", len(list(G.region(s).values())) >= 1)
+    check("floodit pick same colour is a no-op", not bool(G.pick(s, int(s.grid[1][1]))))
+    other = 1 + (int(s.grid[1][1]) % 6) + 1
+    other = other if other != int(s.grid[1][1]) and other <= 6 else (int(s.grid[1][1]) % 6) + 1
+    m0 = int(s.moves)
+    G.pick(s, other)
+    check("floodit a real pick counts a move", int(s.moves) == m0 + 1)
+    # uniform board => won
+    s = G.new(12, 6, 25)
+    for r in range(1, 13):
+        for c in range(1, 13): s.grid[r][c] = 3
+    check("floodit uniform board is won", bool(G.isWon(s)))
+
+
+# ---------------------------------------------------------------- Sliding Puzzle
+def test_slide(lua, ns):
+    G = ns.logic["slide"]
+    lua.execute("math.randomseed(5)")
+    s = G.new(4)
+    # exactly one blank, tiles 1..15 present
+    vals = sorted(int(s.grid[r][c]) for r in range(1, 5) for c in range(1, 5))
+    check("slide has 0..15 exactly once", vals == list(range(16)))
+    # solved detection on an ordered board
+    k = 1
+    for r in range(1, 5):
+        for c in range(1, 5):
+            s.grid[r][c] = 0 if (r == 4 and c == 4) else k; k += 1
+    s.solved = False
+    check("slide detects solved", bool(G.isSolved(s)))
+    # move: slide the tile left of the blank into it
+    check("slide moves a tile into the gap", bool(G.move(s, 4, 3)) and int(s.grid[4][4]) == 15)
+    check("slide non-adjacent move rejected", not bool(G.move(s, 1, 1)))
+
+
+# ---------------------------------------------------------------- Mastermind
+def test_mastermind(lua, ns):
+    G = ns.logic["mastermind"]
+    code = lua.eval("function(...) return {...} end")(1, 2, 3, 4)
+    def score(guess):
+        b, w = G.score(code, lua.eval("function(...) return {...} end")(*guess))
+        return int(b), int(w)
+    check("mm exact match = 4 black", score([1, 2, 3, 4]) == (4, 0))
+    check("mm all wrong = 0/0", score([5, 5, 6, 6]) == (0, 0))
+    check("mm swapped pair = 0 black 2 white", score([2, 1, 3, 4]) == (2, 2))  # 3,4 exact; 1,2 swapped
+    check("mm duplicates counted once", score([1, 1, 1, 1]) == (1, 0))
+    # win + lose flow
+    s = G.new()
+    code2 = [int(s.code[i]) for i in range(1, 5)]
+    b, w = G.guess(s, lua.eval("function(...) return {...} end")(*code2))
+    check("mm guessing the code wins", bool(s.won) and int(b) == 4)
+    s = G.new()
+    wrong = [1 + (int(s.code[1]) % 6), int(s.code[2]), int(s.code[3]), 1 + (int(s.code[4]) % 6)]
+    for _ in range(10): G.guess(s, lua.eval("function(...) return {...} end")(*wrong))
+    check("mm runs out of guesses", bool(s.over) and not bool(s.won))
+
+
 def main():
     lua, ns = boot()
     print(f"Loaded real Arcade addon ({len(FILES)} files) into embedded {lua.eval('_VERSION')}")
@@ -412,6 +533,11 @@ def main():
     test_lightsout(lua, ns)
     test_memory(lua, ns)
     test_simon(lua, ns)
+    test_tictactoe(lua, ns)
+    test_connect4(lua, ns)
+    test_floodit(lua, ns)
+    test_slide(lua, ns)
+    test_mastermind(lua, ns)
     test_core(lua, ns)
     print("-" * 64)
     print(f"arcade integration: {_passed} passed, {_failed} failed")

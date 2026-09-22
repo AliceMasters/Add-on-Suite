@@ -1,15 +1,20 @@
 Bejeweled + Azeroth Arcade — automated QA proof
-Generated: 2026-09-21 16:38 UTC  (CI reproduces this on every push)
+Generated: 2026-09-22 05:07 UTC  (CI reproduces this on every push)
 ============================================================
 
 $ python tests/syntax_check.py
   OK   Arcade\Core.lua
+  OK   Arcade\Games\ConnectFour.lua
+  OK   Arcade\Games\FloodIt.lua
   OK   Arcade\Games\LightsOut.lua
+  OK   Arcade\Games\Mastermind.lua
   OK   Arcade\Games\Memory.lua
   OK   Arcade\Games\Minesweeper.lua
   OK   Arcade\Games\Nonogram.lua
   OK   Arcade\Games\Simon.lua
+  OK   Arcade\Games\Slide.lua
   OK   Arcade\Games\Snake.lua
+  OK   Arcade\Games\TicTacToe.lua
   OK   Arcade\Games\Twenty48.lua
   OK   Bejeweled\Bejeweled.lua
 syntax: ALL OK
@@ -26,11 +31,11 @@ $ python tests/run_lua_tests.py 120 150
 Loaded real Bejeweled.lua into embedded Lua 5.5
 ----------------------------------------------------------------
 real-Lua integration: 120 games x 150 moves = 18000 moves
-special gems observed on-board across run: 10681
+special gems observed on-board across run: 9602
 result: ALL PASS
 
 $ python tests/run_arcade_tests.py
-Loaded real Arcade addon (8 files) into embedded Lua 5.5
-Registered games: Nonogram, 2048, Minesweeper, Snake, Lights Out, Memory, Simon
+Loaded real Arcade addon (13 files) into embedded Lua 5.5
+Registered games: Nonogram, 2048, Minesweeper, Snake, Lights Out, Memory, Simon, Tic-Tac-Toe, Connect Four, Flood It, Sliding Puzzle, Mastermind
 ----------------------------------------------------------------
-arcade integration: 125 passed, 0 failed
+arcade integration: 365 passed, 0 failed

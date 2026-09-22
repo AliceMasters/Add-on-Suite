@@ -173,5 +173,5 @@ local function stop()
   if frame then frame:EnableKeyboard(false); frame:Hide() end
 end
 
-ns.Register({ id = "snake", name = "Snake", desc = "Eat, grow, don't crash.",
+ns.Register({ category = "Arcade", id = "snake", name = "Snake", desc = "Eat, grow, don't crash.",
               icon = "Interface\\Icons\\Ability_Hunter_Pet_Snake", start = start, stop = stop })
