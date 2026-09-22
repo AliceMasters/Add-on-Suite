@@ -184,6 +184,15 @@ local function ApplyAccent()
   if homeCards then for _, card in ipairs(homeCards) do if card._reskin then card._reskin() end end end
 end
 
+-- switch theme accent (exposed so it's driveable from settings and tests)
+function ns.SetAccent(key)
+  local a = ACCENTS[key] or ACCENTS.amethyst
+  ArcadeDB.accent = key
+  ns.C.accent, ns.C.accentLite = a.base, a.lite
+  ApplyAccent()
+end
+ns.ACCENTS = ACCENTS
+
 ------------------------------------------------------------------------
 -- Helpers shared with games
 ------------------------------------------------------------------------
@@ -454,11 +463,7 @@ local function buildSettings()
     local t = sw:CreateTexture(nil, "BACKGROUND"); t:SetAllPoints()
     ns.Grad(t, "VERTICAL", { a.base[1] * 0.7, a.base[2] * 0.7, a.base[3] * 0.7 }, a.lite)
     addBorder(sw, ns.C.edge)
-    sw:SetScript("OnClick", function()
-      ArcadeDB.accent = key
-      ns.C.accent, ns.C.accentLite = a.base, a.lite
-      ApplyAccent()
-    end)
+    sw:SetScript("OnClick", function() ns.SetAccent(key) end)
   end
 
   local close = ns.NewButton(settingsPanel, "Back", 100, 28, function() ns.ShowMenu() end)

@@ -61,6 +61,14 @@ def L(lua, *vals):
     return lua.eval("function(...) return {...} end")(*vals)
 
 
+def _count_table(t):
+    """count consecutive 1-based entries in a Lua array table"""
+    n = 0
+    while t[n + 1] is not None:
+        n += 1
+    return n
+
+
 # ---------------------------------------------------------------- 2048
 def test_2048(lua, ns):
     G = ns.logic["2048"]
@@ -725,6 +733,65 @@ def test_ui_smoke(lua, ns):
         check("ui: back to menu", False, str(e)[:180])
 
 
+# ---------------------------------------------------------------- Core features
+def test_submitbest(lua, ns):
+    lua.execute("ArcadeDB.best = {}")
+    check("submitbest records a score", int(ns.SubmitBest("bt", 10)) == 10)
+    check("submitbest keeps the max", int(ns.SubmitBest("bt", 5)) == 10 and int(ns.SubmitBest("bt", 20)) == 20)
+    check("best reads the value", int(ns.Best("bt")) == 20)
+    check("best is per-id (unknown = 0)", int(ns.Best("nope")) == 0)
+
+
+def test_share(lua, ns):
+    g = lua.globals()
+    ns._gameName, ns._gameId, ns._score = "Snake", "snake", 42
+    lua.execute("ArcadeDB.best = ArcadeDB.best or {}; ArcadeDB.best.snake = 99")
+    lua.execute("CHAT_SENT = {}")
+    ns.ShareScore("PARTY")
+    n = _count_table(g.CHAT_SENT)
+    check("share posts exactly one message", n == 1)
+    if n >= 1:
+        m = g.CHAT_SENT[1]
+        check("share uses the chosen channel", str(m.chan) == "PARTY")
+        txt = str(m.msg)
+        check("share text has game/score/best", "Snake" in txt and "42" in txt and "99" in txt)
+    # whisper needs a target
+    lua.execute("CHAT_SENT = {}"); g.MOCK_TARGET = None
+    ns.ShareScore("WHISPER")
+    check("share whisper w/o target posts nothing", _count_table(g.CHAT_SENT) == 0)
+    lua.execute("CHAT_SENT = {}"); g.MOCK_TARGET = "Zyvarah"
+    ns.ShareScore("WHISPER")
+    check("share whisper w/ target posts", _count_table(g.CHAT_SENT) == 1)
+
+
+def test_theme(lua, ns):
+    for key in ("rose", "emerald", "sapphire", "amethyst"):
+        ns.SetAccent(key)          # exercises ApplyAccent over all registered elements
+        acc = ns.ACCENTS[key]
+        okb = abs(ns.C.accent[1] - acc.base[1]) < 1e-6 and abs(ns.C.accentLite[1] - acc.lite[1]) < 1e-6
+        check(f"theme '{key}' applies accent", okb)
+    check("theme persisted to db", str(lua.globals().ArcadeDB.accent) == "amethyst")
+
+
+def test_minimap(lua, ns):
+    check("minimap button created at load", lua.globals().AzerothArcadeMinimapButton is not None)
+
+
+def test_registry(lua, ns):
+    valid = {"Puzzle", "Arcade", "Vs AI"}
+    n = int(lua.eval("function(t) return #t end")(ns.games))
+    bad_cat, bad_def = [], []
+    for i in range(1, n + 1):
+        d = ns.games[i]
+        if d.category is None or str(d.category) not in valid:
+            bad_cat.append((str(d.id), str(d.category)))
+        if not d.id or not d.name or d.icon is None or d.start is None or d.stop is None:
+            bad_def.append(str(d.id))
+    check("every game has a valid category", len(bad_cat) == 0, str(bad_cat))
+    check("every game def is complete (id/name/icon/start/stop)", len(bad_def) == 0, str(bad_def))
+    check("logic exposed for every game", all(ns.logic[str(ns.games[i].id)] is not None for i in range(1, n + 1)))
+
+
 def main():
     lua, ns = boot()
     print(f"Loaded real Arcade addon ({len(FILES)} files) into embedded {lua.eval('_VERSION')}")
@@ -748,7 +815,12 @@ def main():
     test_pegs(lua, ns)
     test_sudoku(lua, ns)
     test_core(lua, ns)
+    test_submitbest(lua, ns)
+    test_minimap(lua, ns)
+    test_registry(lua, ns)
     test_ui_smoke(lua, ns)
+    test_share(lua, ns)
+    test_theme(lua, ns)
     print("-" * 64)
     print(f"arcade integration: {_passed} passed, {_failed} failed")
     sys.exit(1 if _failed else 0)
