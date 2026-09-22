@@ -685,6 +685,18 @@ def test_sudoku(lua, ns):
                 G.set(s, r, c, int(sol[(r - 1) * 9 + (c - 1)]))
     check("sudoku is solved when filled correctly", bool(s.won) and bool(G.isSolved(s)))
 
+    # save/resume round-trips the in-progress grid
+    s = G.new(1)
+    n = 0
+    for r in range(1, 10):
+        for c in range(1, 10):
+            if not s.fixed[r][c] and n < 6:
+                G.set(s, r, c, 3); n += 1
+    blob = str(G.serialize(s))
+    s2 = G.load(1, blob)
+    same = all(int(s2.grid[r][c]) == int(s.grid[r][c]) for r in range(1, 10) for c in range(1, 10))
+    check("sudoku save/resume round-trips", len(blob) == 81 and same)
+
 
 def main():
     lua, ns = boot()

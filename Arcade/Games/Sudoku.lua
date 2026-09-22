@@ -59,6 +59,26 @@ function Logic.isSolved(s)
   return true
 end
 
+-- persistence: serialize the current grid to an 81-char string, and rebuild
+function Logic.serialize(s)
+  local t = {}
+  for r = 1, 9 do for c = 1, 9 do t[#t + 1] = tostring(s.grid[r][c]) end end
+  return table.concat(t)
+end
+
+function Logic.load(index, cells)
+  local s = Logic.new(index)
+  if type(cells) == "string" and #cells == 81 then
+    for r = 1, 9 do for c = 1, 9 do
+      if not s.fixed[r][c] then
+        s.grid[r][c] = tonumber(cells:sub((r - 1) * 9 + c, (r - 1) * 9 + c)) or 0
+      end
+    end end
+    if Logic.isSolved(s) then s.won = true; s.over = true end
+  end
+  return s
+end
+
 ------------------------------------------------------------------------
 -- View
 ------------------------------------------------------------------------
@@ -81,6 +101,7 @@ end
 
 local function newPuzzle(index)
   state = Logic.new(index); sel = nil; overlay:Hide()
+  ArcadeDB.sudoku = { index = index, cells = Logic.serialize(state) }   -- remember in-progress puzzle
   render(); ns.SetInfo(PUZZLES[index].diff .. "  \226\128\162  " .. PUZZLES[index].name)
   picker:Hide(); frame.play:Show()
 end
@@ -88,8 +109,10 @@ end
 local function place(v)
   if not sel or not state or state.over then return end
   if Logic.set(state, sel[1], sel[2], v) then
+    ArcadeDB.sudoku = { index = state.index, cells = Logic.serialize(state) }   -- autosave every entry
     render(); ns.Sound(SOUNDKIT and SOUNDKIT.IG_MAINMENU_OPTION)
     if state.won then
+      ArcadeDB.sudoku = nil
       ns.SubmitBest("sudoku", ns.Best("sudoku") + 1)
       overlayText:SetText("|cff9be7a0Solved!|r\n" .. PUZZLES[state.index].name)
       overlay:Show(); ns.Sound(SOUNDKIT and SOUNDKIT.LEVELUP)
@@ -164,7 +187,19 @@ local function build(content)
   buildPlay(); buildPicker()
 end
 
-local function start(content) if not frame then build(content) end frame:Show(); showPicker() end
+local function start(content)
+  if not frame then build(content) end
+  frame:Show()
+  local sv = ArcadeDB.sudoku
+  if sv and sv.index and sv.index >= 1 and sv.index <= #PUZZLES then
+    state = Logic.load(sv.index, sv.cells); sel = nil; overlay:Hide()
+    if state.won then ArcadeDB.sudoku = nil; showPicker(); return end
+    render(); ns.SetInfo(PUZZLES[sv.index].diff .. "  \226\128\162  " .. PUZZLES[sv.index].name)
+    picker:Hide(); frame.play:Show()          -- resume the puzzle you left
+  else
+    showPicker()
+  end
+end
 local function stop() if frame then frame:Hide() end end
 
 ns.Register({ category = "Puzzle", id = "sudoku", name = "Sudoku", desc = "Fill the classic 9x9 grid.",
