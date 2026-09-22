@@ -49,13 +49,14 @@ local skinBtns = {}     -- buttons to re-tint on accent change
 local function c4(t, a) return t[1], t[2], t[3], a or 1 end
 
 function ns.Grad(tex, orient, c1, c2)
-  local ok = false
+  -- Always lay down a solid, drawable surface first: SetGradient tints the
+  -- current texture, so without this the gradient renders nothing (transparent).
+  tex:SetColorTexture(c1[1], c1[2], c1[3], c1[4] or 1)
   if CreateColor and tex.SetGradient then
-    ok = pcall(tex.SetGradient, tex, orient,
+    pcall(tex.SetGradient, tex, orient,
       CreateColor(c1[1], c1[2], c1[3], c1[4] or 1),
       CreateColor(c2[1], c2[2], c2[3], c2[4] or 1))
   end
-  if not ok then tex:SetColorTexture(c1[1], c1[2], c1[3], c1[4] or 1) end
 end
 
 -- hairline border around a frame using four thin textures
@@ -419,6 +420,7 @@ local function buildUI()
   -- title bar
   local title = CreateFrame("Frame", nil, f)
   title:SetPoint("TOPLEFT", 1, -1); title:SetPoint("TOPRIGHT", -1, -1); title:SetHeight(30)
+  title:SetFrameLevel(f:GetFrameLevel() + 1)
   title:EnableMouse(true); title:RegisterForDrag("LeftButton")
   title:SetScript("OnDragStart", function() f:StartMoving() end)
   title:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
@@ -428,18 +430,19 @@ local function buildUI()
   titleFS:SetFont(ns.FONT_FANCY, 19); titleFS:SetTextColor(c4(ns.C.gold))
   titleFS:SetPoint("CENTER"); titleFS:SetText("Azeroth Arcade")
 
+  local topLvl = f:GetFrameLevel() + 6   -- above the draggable title bar
   local close = ns.NewButton(f, "X", 26, 22, function() f:Hide() end)
-  close:SetPoint("TOPRIGHT", -4, -4)
+  close:SetPoint("TOPRIGHT", -4, -4); close:SetFrameLevel(topLvl)
   local gear = ns.NewButton(f, "Settings", 74, 22, function()
     homeFrame:Hide(); contentFrame:Hide(); if statsPanel then statsPanel:Hide() end
     settingsPanel:Show()
   end)
-  gear:SetPoint("TOPRIGHT", -34, -4)
+  gear:SetPoint("TOPRIGHT", -34, -4); gear:SetFrameLevel(topLvl)
   local trophyBtn = ns.NewButton(f, "Trophies", 74, 22, function() showStats() end)
-  trophyBtn:SetPoint("TOPRIGHT", -112, -4)
+  trophyBtn:SetPoint("TOPRIGHT", -112, -4); trophyBtn:SetFrameLevel(topLvl)
 
   backBtn = ns.NewButton(f, "< Menu", 66, 22, function() ns.ShowMenu() end)
-  backBtn:SetPoint("TOPLEFT", 6, -4); backBtn:Hide()
+  backBtn:SetPoint("TOPLEFT", 6, -4); backBtn:SetFrameLevel(topLvl); backBtn:Hide()
 
   scoreFS = ns.Label(f, "", 13, ns.C.text); scoreFS:SetPoint("TOP", -60, -38)
   bestFS = ns.Label(f, "", 13, ns.C.gold); bestFS:SetPoint("TOP", 70, -38)
