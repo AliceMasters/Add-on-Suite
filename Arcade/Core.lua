@@ -39,6 +39,7 @@ ns.C = {
 }
 
 local mainFrame, contentFrame, homeFrame, titleFS, scoreFS, bestFS, backBtn, minimapBtn
+local shareBtn, sharePopup
 local settingsPanel, statsPanel, toastFrame, toastText, pillStreak, pillPlays, pillTrophy
 local homeCards = {}
 local current
@@ -147,8 +148,22 @@ end
 function ns.Register(def) ns.games[#ns.games + 1] = def end
 function ns.Best(id) return (ArcadeDB and ArcadeDB.best and ArcadeDB.best[id]) or 0 end
 
-function ns.SetScore(n) if scoreFS then scoreFS:SetText("Score  " .. (n or 0)) end end
+function ns.SetScore(n) ns._score = n; if scoreFS then scoreFS:SetText("Score  " .. (n or 0)) end end
 function ns.SetInfo(t) if scoreFS then scoreFS:SetText(t or "") end end
+
+-- Share the current game's score/best to a chat channel (requested feature)
+function ns.ShareScore(channel)
+  local game = ns._gameName or "Azeroth Arcade"
+  local best = (ns._gameId and ns.Best(ns._gameId)) or 0
+  local msg
+  if ns._score then msg = string.format("[Azeroth Arcade] %s - score %d (best %d)", game, ns._score, best)
+  else msg = string.format("[Azeroth Arcade] %s - best %d", game, best) end
+  local target = channel == "WHISPER" and UnitName("target") or nil
+  if channel == "WHISPER" and not target then ns.Msg("no target to whisper."); return end
+  local ok = pcall(SendChatMessage, msg, channel, nil, target)
+  if not ok then ns.Msg("couldn't post to that channel.") end
+  if sharePopup then sharePopup:Hide() end
+end
 function ns.SubmitBest(id, n)
   ArcadeDB.best = ArcadeDB.best or {}
   if n > (ArcadeDB.best[id] or 0) then ArcadeDB.best[id] = n end
@@ -238,6 +253,8 @@ function ns.ShowMenu()
   titleFS:SetText("Azeroth Arcade")
   scoreFS:SetText(""); bestFS:SetText("")
   backBtn:Hide()
+  if shareBtn then shareBtn:Hide() end
+  if sharePopup then sharePopup:Hide() end
   contentFrame:Hide()
   refreshHome()
   homeFrame:Show()
@@ -255,6 +272,8 @@ function ns.PlayGame(id)
       titleFS:SetText(def.name)
       scoreFS:SetText(""); bestFS:SetText("Best  " .. ns.Best(id))
       backBtn:Show()
+      ns._gameName, ns._gameId, ns._score = def.name, id, nil
+      if shareBtn then shareBtn:Show() end
       ns.RecordPlay(id)
       refreshHome()
       def.start(contentFrame)
@@ -468,6 +487,22 @@ local function buildUI()
 
   backBtn = ns.NewButton(f, "< Menu", 66, 22, function() ns.ShowMenu() end)
   backBtn:SetPoint("TOPLEFT", 6, -4); backBtn:SetFrameLevel(topLvl); backBtn:Hide()
+
+  shareBtn = ns.NewButton(f, "Share", 58, 22, function()
+    if sharePopup:IsShown() then sharePopup:Hide() else sharePopup:Show() end
+  end)
+  shareBtn:SetPoint("TOPLEFT", 76, -4); shareBtn:SetFrameLevel(topLvl); shareBtn:Hide()
+
+  sharePopup = ns.Panel(f)
+  sharePopup:SetSize(126, 6 * 26 + 8)
+  sharePopup:SetPoint("TOPLEFT", shareBtn, "BOTTOMLEFT", 0, -2)
+  sharePopup:SetFrameStrata("DIALOG"); sharePopup:SetFrameLevel(topLvl + 20); sharePopup:Hide()
+  local chans = { { "Say", "SAY" }, { "Party", "PARTY" }, { "Guild", "GUILD" },
+                  { "Raid", "RAID" }, { "Instance", "INSTANCE_CHAT" }, { "Whisper Target", "WHISPER" } }
+  for i, ch in ipairs(chans) do
+    local b = ns.NewButton(sharePopup, ch[1], 116, 24, function() ns.ShareScore(ch[2]) end)
+    b:SetPoint("TOP", 0, -4 - (i - 1) * 26)
+  end
 
   scoreFS = ns.Label(f, "", 13, ns.C.text); scoreFS:SetPoint("TOP", -60, -38)
   bestFS = ns.Label(f, "", 13, ns.C.gold); bestFS:SetPoint("TOP", 70, -38)

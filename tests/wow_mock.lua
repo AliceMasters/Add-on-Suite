@@ -84,6 +84,8 @@ _G.DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) table.insert(CHAT_LOG, msg) 
 _G.SlashCmdList = {}
 _G.IsMouseButtonDown = function() return false end
 _G.PlaySound = function() end
+_G.SendChatMessage = function() end
+_G.UnitName = function() return nil end
 _G.CreateColor = function(r, g, b, a)
   return { r = r, g = g, b = b, a = a or 1, GetRGBA = function(self) return self.r, self.g, self.b, self.a end }
 end
