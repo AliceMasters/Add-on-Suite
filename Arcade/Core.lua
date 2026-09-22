@@ -34,7 +34,7 @@ ns.C = {
   line  = { 0.48, 0.40, 0.64 },
   edge  = { 0.50, 0.38, 0.66 }, edgeLo = { 0.32, 0.24, 0.44 },
   text  = { 0.96, 0.94, 0.98 }, sub = { 0.78, 0.72, 0.86 },
-  gold  = { 0.93, 0.85, 0.66 },
+  gold  = { 0.93, 0.85, 0.66 }, silver = { 0.82, 0.85, 0.92 },
   accent = ACCENTS.amethyst.base, accentLite = ACCENTS.amethyst.lite,
 }
 
@@ -79,18 +79,65 @@ local function addBorder(f, col, inset)
   line("TOPRIGHT", "BOTTOMRIGHT", 1, nil)
 end
 
-local function skinButton(b)
-  local a, al = ns.C.accent, ns.C.accentLite
-  ns.Grad(b._base, "VERTICAL", { a[1] * 0.7, a[2] * 0.7, a[3] * 0.7 }, { al[1], al[2], al[3] })
-  b._glow:SetColorTexture(al[1], al[2], al[3], 0.28)
+------------------------------------------------------------------------
+-- Rounded 9-slice (soft corners at any size) + theme registries
+------------------------------------------------------------------------
+local MEDIA = "Interface\\AddOns\\Arcade\\Media\\"
+local FILL, LINE = MEDIA .. "roundfill", MEDIA .. "roundline"
+local KP, KT = 14, 14 / 64   -- corner size (px) and texcoord fraction
+
+local roundBorders, accentFills, glows = {}, {}, {}
+
+local function mix(a, b, t)
+  return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t }
+end
+local function btnFill() return mix(ns.C.accent, ns.C.accentLite, 0.45) end
+local function borderColor() return mix(ns.C.accentLite, ns.C.silver, 0.5) end
+
+-- build a 9-slice from texPath onto frame; returns { SetColor = fn }
+local function round9(frame, texPath, layer)
+  local t = {}
+  local function mk() local x = frame:CreateTexture(nil, layer or "BACKGROUND"); x:SetTexture(texPath)
+    if x.SetSnapToPixelGrid then x:SetSnapToPixelGrid(false) end
+    if x.SetTexelSnappingBias then x:SetTexelSnappingBias(0) end
+    t[#t + 1] = x; return x end
+  local k = KT
+  local tl = mk(); tl:SetSize(KP, KP); tl:SetPoint("TOPLEFT");     tl:SetTexCoord(0, k, 0, k)
+  local tr = mk(); tr:SetSize(KP, KP); tr:SetPoint("TOPRIGHT");    tr:SetTexCoord(1 - k, 1, 0, k)
+  local bl = mk(); bl:SetSize(KP, KP); bl:SetPoint("BOTTOMLEFT");  bl:SetTexCoord(0, k, 1 - k, 1)
+  local br = mk(); br:SetSize(KP, KP); br:SetPoint("BOTTOMRIGHT"); br:SetTexCoord(1 - k, 1, 1 - k, 1)
+  local top = mk(); top:SetPoint("TOPLEFT", tl, "TOPRIGHT"); top:SetPoint("BOTTOMRIGHT", tr, "BOTTOMLEFT"); top:SetTexCoord(k, 1 - k, 0, k)
+  local bot = mk(); bot:SetPoint("TOPLEFT", bl, "TOPRIGHT"); bot:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT"); bot:SetTexCoord(k, 1 - k, 1 - k, 1)
+  local lft = mk(); lft:SetPoint("TOPLEFT", tl, "BOTTOMLEFT"); lft:SetPoint("BOTTOMRIGHT", bl, "TOPRIGHT"); lft:SetTexCoord(0, k, k, 1 - k)
+  local rgt = mk(); rgt:SetPoint("TOPLEFT", tr, "BOTTOMLEFT"); rgt:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT"); rgt:SetTexCoord(1 - k, 1, k, 1 - k)
+  local ctr = mk(); ctr:SetPoint("TOPLEFT", tl, "BOTTOMRIGHT"); ctr:SetPoint("BOTTOMRIGHT", br, "TOPLEFT"); ctr:SetTexCoord(k, 1 - k, k, 1 - k)
+  return { SetColor = function(_, r, g, b, a) for _, x in ipairs(t) do x:SetVertexColor(r, g, b, a or 1) end end }
+end
+
+-- rounded fill with a solid inset fallback (visible even if the TGA can't load)
+local function roundFill(frame, col)
+  local base = frame:CreateTexture(nil, "BACKGROUND")
+  base:SetPoint("TOPLEFT", 3, -3); base:SetPoint("BOTTOMRIGHT", -3, 3)
+  base:SetColorTexture(col[1], col[2], col[3], col[4] or 1)
+  local nine = round9(frame, FILL, "BACKGROUND")
+  nine:SetColor(nil, col[1], col[2], col[3], col[4] or 1)
+  return { set = function(c) base:SetColorTexture(c[1], c[2], c[3], c[4] or 1); nine:SetColor(nil, c[1], c[2], c[3], c[4] or 1) end }
+end
+
+local function roundBorder(frame, col)
+  local nine = round9(frame, LINE, "BORDER")
+  nine:SetColor(nil, col[1], col[2], col[3], col[4] or 1)
+  roundBorders[#roundBorders + 1] = nine
+  return nine
 end
 
 function ns.NewButton(parent, text, w, h, onclick)
   local b = CreateFrame("Button", nil, parent)
   b:SetSize(w or 100, h or 26)
-  b._base = b:CreateTexture(nil, "BACKGROUND"); b._base:SetAllPoints()
-  addBorder(b, { ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.5 })
-  b._glow = b:CreateTexture(nil, "HIGHLIGHT"); b._glow:SetAllPoints()
+  local fill = roundFill(b, btnFill()); accentFills[#accentFills + 1] = fill
+  roundBorder(b, borderColor())
+  local glow = b:CreateTexture(nil, "HIGHLIGHT"); glow:SetPoint("TOPLEFT", 2, -2); glow:SetPoint("BOTTOMRIGHT", -2, 2)
+  glow:SetColorTexture(ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.20); glows[#glows + 1] = glow
   local fs = b:CreateFontString(nil, "OVERLAY")
   fs:SetFont(ns.FONT, 13); fs:SetTextColor(c4(ns.C.text)); fs:SetPoint("CENTER")
   b._fs = fs
@@ -100,18 +147,18 @@ function ns.NewButton(parent, text, w, h, onclick)
   b:SetScript("OnMouseDown", function() fs:SetPoint("CENTER", 0, -1) end)
   b:SetScript("OnMouseUp", function() fs:SetPoint("CENTER", 0, 0) end)
   if onclick then b:SetScript("OnClick", onclick) end
-  skinButton(b)
-  skinBtns[#skinBtns + 1] = b
   return b
 end
 
-function ns.Panel(parent)
+function ns.Panel(parent, fillCol)
   local p = CreateFrame("Frame", nil, parent)
-  local bg = p:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-  ns.Grad(bg, "VERTICAL", ns.C.panel, ns.C.panelLo)
-  addBorder(p, ns.C.edgeLo)
+  roundFill(p, fillCol or ns.C.panel)
+  roundBorder(p, borderColor())
   return p
 end
+
+function ns.RoundFill(frame, col) return roundFill(frame, col) end
+function ns.RoundBorder(frame, col) return roundBorder(frame, col) end
 
 function ns.Header(parent, text, size)
   local fs = parent:CreateFontString(nil, "OVERLAY")
@@ -130,7 +177,10 @@ function ns.Label(parent, text, size, col)
 end
 
 local function ApplyAccent()
-  for _, b in ipairs(skinBtns) do if b._base then skinButton(b) end end
+  local bc = borderColor()
+  for _, f in ipairs(accentFills) do f.set(btnFill()) end
+  for _, bd in ipairs(roundBorders) do bd:SetColor(nil, bc[1], bc[2], bc[3]) end
+  for _, g in ipairs(glows) do g:SetColorTexture(ns.C.accentLite[1], ns.C.accentLite[2], ns.C.accentLite[3], 0.20) end
   if homeCards then for _, card in ipairs(homeCards) do if card._reskin then card._reskin() end end end
 end
 
@@ -289,10 +339,9 @@ local function makeCard(parent, def, w, h)
   local card = CreateFrame("Button", nil, parent)
   card:SetSize(w, h)
   card._id = def.id
-  local base = card:CreateTexture(nil, "BACKGROUND"); base:SetAllPoints()
-  ns.Grad(base, "VERTICAL", ns.C.panel, ns.C.panelLo)
-  addBorder(card, ns.C.edge)
-  local glow = card:CreateTexture(nil, "HIGHLIGHT"); glow:SetAllPoints()
+  roundFill(card, ns.C.panel)
+  roundBorder(card, borderColor())
+  local glow = card:CreateTexture(nil, "HIGHLIGHT"); glow:SetPoint("TOPLEFT", 2, -2); glow:SetPoint("BOTTOMRIGHT", -2, 2)
 
   local holder = CreateFrame("Frame", nil, card)
   holder:SetSize(48, 48); holder:SetPoint("TOPLEFT", 12, -12)
@@ -456,9 +505,8 @@ local function buildUI()
   f:SetMovable(true); f:EnableMouse(true); f:SetClampedToScreen(true); f:SetFrameStrata("HIGH")
   f:Hide()
 
-  local bg = f:CreateTexture(nil, "BACKGROUND"); bg:SetAllPoints()
-  ns.Grad(bg, "VERTICAL", ns.C.bg1, ns.C.bg2)
-  addBorder(f, ns.C.edge)
+  roundFill(f, ns.C.bg1)
+  roundBorder(f, borderColor())
 
   -- title bar
   local title = CreateFrame("Frame", nil, f)
