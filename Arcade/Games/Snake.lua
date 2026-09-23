@@ -174,4 +174,4 @@ local function stop()
 end
 
 ns.Register({ category = "Arcade", id = "snake", name = "Snake", desc = "Eat, grow, don't crash.",
-              icon = "Interface\\Icons\\Ability_Hunter_Pet_Snake", start = start, stop = stop })
+              icon = "Interface\\Icons\\Spell_Nature_Regeneration", start = start, stop = stop })

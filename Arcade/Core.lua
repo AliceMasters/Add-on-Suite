@@ -28,9 +28,9 @@ local ACCENTS = {
 local ORDER = { "amethyst", "rose", "emerald", "sapphire" }
 
 ns.C = {
-  bg1   = { 0.12, 0.09, 0.17 }, bg2 = { 0.07, 0.05, 0.11 },
-  panel = { 0.21, 0.17, 0.30 }, panelLo = { 0.15, 0.12, 0.22 },
-  cell  = { 0.27, 0.23, 0.37 }, cellLo = { 0.19, 0.16, 0.28 },
+  bg1   = { 0.09, 0.06, 0.13 }, bg2 = { 0.05, 0.03, 0.08 },
+  panel = { 0.17, 0.13, 0.24 }, panelLo = { 0.12, 0.09, 0.18 },
+  cell  = { 0.24, 0.20, 0.33 }, cellLo = { 0.16, 0.13, 0.24 },
   line  = { 0.48, 0.40, 0.64 },
   edge  = { 0.50, 0.38, 0.66 }, edgeLo = { 0.32, 0.24, 0.44 },
   text  = { 0.96, 0.94, 0.98 }, sub = { 0.78, 0.72, 0.86 },
@@ -523,8 +523,9 @@ local function buildUI()
   local tbg = title:CreateTexture(nil, "ARTWORK"); tbg:SetAllPoints()
   ns.Grad(tbg, "VERTICAL", { 0.20, 0.13, 0.28 }, { 0.11, 0.07, 0.16 })
   titleFS = title:CreateFontString(nil, "OVERLAY")
-  titleFS:SetFont(ns.FONT_FANCY, 19); titleFS:SetTextColor(c4(ns.C.gold))
-  titleFS:SetPoint("CENTER"); titleFS:SetText("Azeroth Arcade")
+  titleFS:SetFont(ns.FONT_FANCY, 18); titleFS:SetTextColor(c4(ns.C.gold))
+  titleFS:SetPoint("LEFT", 14, 0); titleFS:SetWidth(210); titleFS:SetJustifyH("LEFT")
+  titleFS:SetText("Azeroth Arcade")
 
   local topLvl = f:GetFrameLevel() + 6   -- above the draggable title bar
   local close = ns.NewButton(f, "X", 26, 22, function() f:Hide() end)
@@ -539,12 +540,12 @@ local function buildUI()
   trophyBtn:SetPoint("TOPRIGHT", -112, -4); trophyBtn:SetFrameLevel(topLvl)
 
   backBtn = ns.NewButton(f, "< Menu", 66, 22, function() ns.ShowMenu() end)
-  backBtn:SetPoint("TOPLEFT", 6, -4); backBtn:SetFrameLevel(topLvl); backBtn:Hide()
+  backBtn:SetPoint("TOPRIGHT", -190, -4); backBtn:SetFrameLevel(topLvl); backBtn:Hide()
 
   shareBtn = ns.NewButton(f, "Share", 58, 22, function()
     if sharePopup:IsShown() then sharePopup:Hide() else sharePopup:Show() end
   end)
-  shareBtn:SetPoint("TOPLEFT", 76, -4); shareBtn:SetFrameLevel(topLvl); shareBtn:Hide()
+  shareBtn:SetPoint("TOPRIGHT", -260, -4); shareBtn:SetFrameLevel(topLvl); shareBtn:Hide()
 
   sharePopup = ns.Panel(f)
   sharePopup:SetSize(126, 6 * 26 + 8)
