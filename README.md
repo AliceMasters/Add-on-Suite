@@ -4,13 +4,13 @@
 
 ### Arcade games that live *inside* your World of Warcraft window — no alt-tabbing.
 
-[![tests](https://github.com/CallMeAlicex/Add-on-Suite/actions/workflows/tests.yml/badge.svg)](https://github.com/CallMeAlicex/Add-on-Suite/actions/workflows/tests.yml)
+[![tests](https://github.com/AliceMasters/Add-on-Suite/actions/workflows/tests.yml/badge.svg)](https://github.com/AliceMasters/Add-on-Suite/actions/workflows/tests.yml)
 ![WoW](https://img.shields.io/badge/WoW-Retail%20120100-6a3fb5)
 ![Lua](https://img.shields.io/badge/Lua-5.1-24136b)
 ![License](https://img.shields.io/badge/license-MIT-e9d5a0)
 
-*Every game's logic is proven headlessly — the real shipped `.lua` is loaded into an*
-*embedded Lua runtime and fuzzed on every push. Green badge = the cabinet still works.*
+*Every game's logic is tested headlessly: the real shipped `.lua` is loaded into an*
+*embedded Lua runtime and fuzzed on every push. A green badge means the whole cabinet still works.*
 
 </div>
 
@@ -61,6 +61,8 @@ The original match-3, in its own addon. Swap gems, trigger cascades, build a
 
 ## 🧪 How it's tested
 
+> **At a glance:** 4 CI gates on every push · **60,000** fuzzed moves against a reference model · **18,000** moves through the *real* shipped Lua · **439** arcade checks · exhaustive game-tree proofs that the Tic-Tac-Toe and Nim AIs play perfectly · a feature-to-test map in [`tests/COVERAGE.md`](tests/COVERAGE.md).
+
 A WoW addon can't run in CI, so the suite is verified in two layers (see `tests/`,
 run on every push):
 
@@ -72,7 +74,17 @@ run on every push):
    solve/lives/hint across all 100 puzzles, streaks, achievements, and a full
    game-tree proof that the Tic-Tac-Toe AI never loses, a full-search proof that
    the Nim AI wins from any winning position, and solution-verified Sudoku).
-   **400+ checks, all green.**
+   **439 checks, all green.**
+
+### 🐛 The bug the fuzzer missed
+
+The reference-model fuzz passed **60,000 moves** while the shipped addon still had a
+refill bug: `Collapse()` spawned new gems but never wrote them back into the board.
+The model couldn't catch it because the model *had* the line the Lua was missing.
+It tested the intent, not the thing that actually ships. The real-Lua layer caught it
+on **move 0**. That's why both layers exist: the model is a fast design oracle, and
+the integration layer is the source of truth for what ships.
+[Full write-up →](tests/README.md#why-both-layers-exist-a-real-lesson-from-this-project)
 
 ```bash
 pip install -r tests/requirements.txt
