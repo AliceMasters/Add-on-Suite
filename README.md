@@ -101,6 +101,12 @@ World of Warcraft\_retail_\Interface\AddOns\
 
 Enable it on the character screen, then type `/arcade`.
 
+## 📜 Patch notes
+
+**Latest: Patch 4.2, *"Show Your Work"*** (Oct 5, 2026). The QA story now leads the README, and the badge and test docs are fixed.
+
+[Full patch history →](CHANGELOG.md)
+
 ## License
 
 MIT — do whatever you like with it.
